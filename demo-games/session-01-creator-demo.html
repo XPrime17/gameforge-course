@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Lost Temple - Creator Adventure</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0D0D1A;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    color: #D4D4E8;
+  }
+
+  .game-wrapper {
+    display: flex;
+    gap: 20px;
+    max-width: 1000px;
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .main-panel {
+    flex: 1;
+    background: #141428;
+    border: 1px solid #2D2D5E;
+    border-radius: 12px;
+    padding: 25px;
+  }
+
+  .side-panel {
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .inventory-panel, .log-panel {
+    background: #141428;
+    border: 1px solid #2D2D5E;
+    border-radius: 12px;
+    padding: 15px;
+  }
+
+  .panel-title {
+    font-size: 13px;
+    color: #8B5CF6;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .tier-badge {
+    display: inline-block;
+    background: #2D1B69;
+    color: #A78BFA;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+  }
+
+  .room-art {
+    font-size: 40px;
+    text-align: center;
+    padding: 15px;
+    background: #0D0D1A;
+    border-radius: 8px;
+    margin: 10px 0;
+  }
+
+  h2 {
+    font-size: 22px;
+    color: #A78BFA;
+    margin-bottom: 5px;
+  }
+
+  .room-subtitle {
+    font-size: 12px;
+    color: #6B7280;
+    margin-bottom: 15px;
+  }
+
+  .story-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #B4B4D0;
+    margin-bottom: 20px;
+  }
+
+  .choices { display: flex; flex-direction: column; gap: 8px; }
+
+  .choice-btn {
+    background: #1E1E3F;
+    color: #D4D4E8;
+    border: 1px solid #3D3D7A;
+    padding: 12px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .choice-btn:hover {
+    background: #8B5CF6;
+    border-color: #A78BFA;
+    color: white;
+  }
+
+  .choice-btn.locked {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-style: dashed;
+  }
+
+  .choice-btn.locked:hover {
+    background: #1E1E3F;
+    border-color: #3D3D7A;
+    color: #D4D4E8;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #1E1E3F;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    animation: itemIn 0.3s ease-out;
+  }
+
+  @keyframes itemIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .item-icon { font-size: 20px; }
+  .item-name { color: #A78BFA; font-weight: 600; }
+  .item-desc { color: #6B7280; font-size: 11px; }
+
+  .empty-inv { color: #4B5563; font-style: italic; font-size: 13px; }
+
+  .log-entry {
+    font-size: 11px;
+    color: #6B7280;
+    padding: 4px 0;
+    border-bottom: 1px solid #1E1E3F;
+  }
+
+  .log-entry.pickup { color: #10B981; }
+  .log-entry.use { color: #F59E0B; }
+
+  .ending-box {
+    background: linear-gradient(135deg, #2D1B69, #1E1E3F);
+    border: 2px solid #8B5CF6;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    margin: 15px 0;
+  }
+
+  .ending-box h3 { font-size: 20px; color: #F59E0B; margin-bottom: 8px; }
+  .ending-box p { font-size: 14px; color: #94A3B8; margin: 5px 0; }
+
+  .restart-btn {
+    background: #8B5CF6;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    margin-top: 10px;
+  }
+
+  .restart-btn:hover { background: #7C3AED; }
+
+  .notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #10B981;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    animation: slideIn 0.3s ease-out, fadeOut 0.3s 1.5s forwards;
+    z-index: 100;
+  }
+
+  @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
+</style>
+</head>
+<body>
+
+<div class="game-wrapper">
+  <div class="main-panel">
+    <div class="tier-badge">🟣 CREATOR</div>
+    <div class="room-art" id="roomArt">🏛️</div>
+    <h2 id="roomTitle">The Lost Temple</h2>
+    <div class="room-subtitle" id="roomSub">Entrance Hall</div>
+    <div class="story-text" id="story"></div>
+    <div class="choices" id="choices"></div>
+  </div>
+
+  <div class="side-panel">
+    <div class="inventory-panel">
+      <div class="panel-title">🎒 Inventory</div>
+      <div id="inventory"><div class="empty-inv">Empty</div></div>
+    </div>
+    <div class="log-panel">
+      <div class="panel-title">📜 Log</div>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const inventory = [];
+const log = [];
+const flags = {};
+
+const items = {
+  torch: { icon: "🔥", name: "Torch", desc: "Lights dark areas" },
+  key: { icon: "🗝️", name: "Golden Key", desc: "Opens locked doors" },
+  gem: { icon: "💎", name: "Crystal Gem", desc: "Glows near secrets" },
+  rope: { icon: "🪢", name: "Rope", desc: "For climbing or pulling" },
+  amulet: { icon: "🔮", name: "Amulet", desc: "Ancient protective charm" },
+};
+
+const rooms = {
+  entrance: {
+    art: "🏛️", title: "The Lost Temple", sub: "Entrance Hall",
+    text: "Massive stone columns rise into darkness above you. Vines crawl across ancient carvings on the walls. Two passages lead deeper into the temple. A dusty torch sits in a bracket on the wall.",
+    choices: [
+      { text: "🔥 Take the torch from the wall", action: "pickup", item: "torch", next: "entrance_lit" },
+      { text: "👈 Go through the left passage (dark)", next: "dark_hall", requires: "torch", lockedText: "🔒 Too dark — need a light source" },
+      { text: "👉 Go through the right passage", next: "puzzle_room" }
+    ]
+  },
+  entrance_lit: {
+    art: "🏛️✨", title: "The Lost Temple", sub: "Entrance Hall (lit)",
+    text: "With the torch lit, you can see golden inscriptions on the ceiling: 'Only the worthy may claim the treasure. Three trials await.' Two passages lead deeper.",
+    choices: [
+      { text: "👈 Go through the left passage", next: "dark_hall" },
+      { text: "👉 Go through the right passage", next: "puzzle_room" }
+    ]
+  },
+  dark_hall: {
+    art: "🌑🔥", title: "The Shadow Corridor", sub: "Left Passage",
+    text: "Your torch illuminates walls covered in ancient murals. You spot a golden key hanging from a hook high on the wall, and a coil of rope on the floor.",
+    choices: [
+      { text: "🪢 Pick up the rope", action: "pickup", item: "rope", next: "dark_hall_rope" },
+      { text: "🗝️ Try to reach the key (too high!)", next: "dark_hall_noreach" },
+      { text: "🔙 Go back to entrance", next: "entrance_lit" }
+    ]
+  },
+  dark_hall_rope: {
+    art: "🌑🔥", title: "The Shadow Corridor", sub: "Left Passage",
+    text: "You have the rope. The golden key glints high above you on the wall hook.",
+    choices: [
+      { text: "🪢 Use rope to pull down the key", action: "pickup", item: "key", useItem: "rope", next: "dark_hall_done" },
+      { text: "🔙 Go back to entrance", next: "entrance_lit" }
+    ]
+  },
+  dark_hall_noreach: {
+    art: "🌑", title: "The Shadow Corridor", sub: "Left Passage",
+    text: "You jump and stretch, but the key is too high. You need something to reach it — maybe a rope or hook?",
+    choices: [
+      { text: "🪢 Pick up the rope from the floor", action: "pickup", item: "rope", next: "dark_hall_rope" },
+      { text: "🔙 Go back to entrance", next: "entrance_lit" }
+    ]
+  },
+  dark_hall_done: {
+    art: "🌑✨", title: "The Shadow Corridor", sub: "Left Passage — cleared",
+    text: "You lasso the hook with the rope and pull. The golden key clinks to the floor! You grab it — it's warm to the touch and hums with energy.",
+    choices: [
+      { text: "🔙 Go back to entrance", next: "entrance_lit" }
+    ]
+  },
+  puzzle_room: {
+    art: "🧩", title: "The Puzzle Chamber", sub: "Right Passage",
+    text: "Three stone pedestals stand before a locked gate. Each has a symbol: ☀️ Sun, 🌙 Moon, ⭐ Star. An inscription reads: 'The light that comes before night, but after the stars fade.' A crystal gem rests in an alcove nearby.",
+    choices: [
+      { text: "💎 Pick up the crystal gem", action: "pickup", item: "gem", next: "puzzle_room_gem" },
+      { text: "☀️ Press the Sun pedestal", next: "puzzle_sun" },
+      { text: "🌙 Press the Moon pedestal", next: "puzzle_wrong" },
+      { text: "⭐ Press the Star pedestal", next: "puzzle_wrong" },
+      { text: "🔙 Go back to entrance", next: "entrance_lit" }
+    ]
+  },
+  puzzle_room_gem: {
+    art: "🧩💎", title: "The Puzzle Chamber", sub: "Right Passage",
+    text: "The crystal gem glows faintly near the Sun pedestal! That must be the answer. 'The light that comes before night' — the Sun sets before night begins!",
+    choices: [
+      { text: "☀️ Press the Sun pedestal", next: "puzzle_sun" },
+      { text: "🔙 Go back to entrance", next: "entrance_lit" }
+    ]
+  },
+  puzzle_wrong: {
+    art: "🧩❌", title: "The Puzzle Chamber", sub: "Right Passage",
+    text: "The pedestal sinks, then rises back. Nothing happens. That wasn't the right answer. Think: 'The light that comes before night, but after the stars fade.'",
+    choices: [
+      { text: "☀️ Press the Sun pedestal", next: "puzzle_sun" },
+      { text: "🌙 Press the Moon pedestal", next: "puzzle_wrong" },
+      { text: "⭐ Press the Star pedestal", next: "puzzle_wrong" },
+      { text: "🔙 Go back", next: "entrance_lit" }
+    ]
+  },
+  puzzle_sun: {
+    art: "☀️✨", title: "The Puzzle Chamber", sub: "Puzzle Solved!",
+    text: "The Sun pedestal glows golden! The locked gate rumbles open, revealing the treasure vault beyond. But the gate has a golden lock — you need a key!",
+    choices: [
+      { text: "🗝️ Use the Golden Key to enter", next: "treasure", requires: "key", lockedText: "🔒 The gate is open but there's a golden lock. Need a key!" },
+      { text: "🔙 Go find the key", next: "entrance_lit" }
+    ]
+  },
+  treasure: {
+    art: "👑💎🏆", title: "The Treasure Vault", sub: "You made it!",
+    text: "You insert the golden key and the lock clicks open. Inside: mountains of gold coins, jeweled crowns, and in the center — an ancient amulet pulsing with purple light.",
+    choices: [
+      { text: "🔮 Take the Amulet of the Temple", action: "pickup", item: "amulet", next: "ending" }
+    ]
+  },
+  ending: {
+    art: "🌟👑🌟", title: "Temple Master!", sub: "Adventure Complete",
+    text: "",
+    ending: true
+  }
+};
+
+function addLog(text, type = "") {
+  log.unshift({ text, type });
+  renderLog();
+}
+
+function renderLog() {
+  const logDiv = document.getElementById("log");
+  logDiv.innerHTML = log.slice(0, 8).map(l =>
+    `<div class="log-entry ${l.type}">${l.text}</div>`
+  ).join("");
+}
+
+function renderInventory() {
+  const invDiv = document.getElementById("inventory");
+  if (inventory.length === 0) {
+    invDiv.innerHTML = '<div class="empty-inv">Empty</div>';
+    return;
+  }
+  invDiv.innerHTML = inventory.map(id => {
+    const item = items[id];
+    return `<div class="item"><span class="item-icon">${item.icon}</span><div><div class="item-name">${item.name}</div><div class="item-desc">${item.desc}</div></div></div>`;
+  }).join("");
+}
+
+function notify(text) {
+  const n = document.createElement("div");
+  n.className = "notification";
+  n.textContent = text;
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 2000);
+}
+
+function goTo(roomId) {
+  const room = rooms[roomId];
+  document.getElementById("roomArt").textContent = room.art;
+  document.getElementById("roomTitle").textContent = room.title;
+  document.getElementById("roomSub").textContent = room.sub;
+
+  const choicesDiv = document.getElementById("choices");
+  choicesDiv.innerHTML = "";
+
+  if (room.ending) {
+    document.getElementById("story").textContent = "";
+    const endBox = document.createElement("div");
+    endBox.className = "ending-box";
+    endBox.innerHTML = `
+      <h3>🏆 Temple Master!</h3>
+      <p>You solved the puzzle, retrieved the key, and claimed the ancient amulet!</p>
+      <p>Items collected: ${inventory.length} / ${Object.keys(items).length}</p>
+      <p style="color: #A78BFA; margin-top: 10px;">Puzzles solved: Rope → Key, Sun pedestal riddle, Golden lock</p>
+    `;
+    choicesDiv.appendChild(endBox);
+
+    const btn = document.createElement("button");
+    btn.className = "restart-btn";
+    btn.textContent = "🔄 Play Again";
+    btn.onclick = () => location.reload();
+    choicesDiv.appendChild(btn);
+    return;
+  }
+
+  document.getElementById("story").textContent = room.text;
+  addLog(`Entered: ${room.title}`);
+
+  room.choices.forEach(choice => {
+    // Skip pickup choices for items already held
+    if (choice.action === "pickup" && inventory.includes(choice.item)) return;
+
+    const btn = document.createElement("button");
+    const locked = choice.requires && !inventory.includes(choice.requires);
+    btn.className = "choice-btn" + (locked ? " locked" : "");
+    btn.textContent = locked ? choice.lockedText : choice.text;
+
+    if (!locked) {
+      btn.onclick = () => {
+        if (choice.action === "pickup") {
+          inventory.push(choice.item);
+          renderInventory();
+          notify(`Picked up: ${items[choice.item].name}`);
+          addLog(`+ ${items[choice.item].name}`, "pickup");
+        }
+        if (choice.useItem) {
+          addLog(`Used: ${items[choice.useItem].name}`, "use");
+        }
+        goTo(choice.next);
+      };
+    }
+    choicesDiv.appendChild(btn);
+  });
+}
+
+renderInventory();
+goTo("entrance");
+</script>
+</body>
+</html>

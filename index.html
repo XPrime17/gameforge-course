@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Forge: Vibe Code Your Own Video Games | Code Ninjas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --cn-orange: #FF6B00;
+    --cn-orange-dark: #E55A00;
+    --cn-dark: #1A1A2E;
+    --cn-darker: #0F0F1A;
+    --cn-accent: #00D4FF;
+    --cn-green: #00FF88;
+    --cn-purple: #8B5CF6;
+    --cn-card-bg: #16213E;
+    --cn-card-border: #1E3A5F;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--cn-darker);
+    color: #E0E0E0;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--cn-dark) 0%, #16213E 100%);
+    border-bottom: 3px solid var(--cn-orange);
+    padding: 1.5rem 2rem;
+    text-align: center;
+  }
+  .header-brand {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.7rem;
+    color: var(--cn-orange);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .header h1 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 1.8rem;
+    background: linear-gradient(90deg, var(--cn-orange), var(--cn-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.4;
+  }
+  .header p {
+    margin-top: 0.75rem;
+    color: #94A3B8;
+    font-size: 1rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Navigation Tabs */
+  .nav-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: var(--cn-dark);
+    flex-wrap: wrap;
+  }
+  .nav-tab {
+    padding: 0.5rem 1.25rem;
+    border-radius: 2rem;
+    border: 1px solid var(--cn-card-border);
+    background: transparent;
+    color: #94A3B8;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-tab:hover, .nav-tab.active {
+    background: var(--cn-orange);
+    color: white;
+    border-color: var(--cn-orange);
+  }
+
+  /* Content */
+  .content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* Session Grid */
+  .session-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .session-card {
+    background: var(--cn-card-bg);
+    border: 1px solid var(--cn-card-border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .session-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(255, 107, 0, 0.15);
+    border-color: var(--cn-orange);
+  }
+
+  .card-number {
+    background: linear-gradient(135deg, var(--cn-orange), var(--cn-orange-dark));
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .card-number .num {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.9rem;
+    color: white;
+  }
+  .card-number .belt {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .belt-all { background: rgba(255,255,255,0.2); color: white; }
+
+  .card-body {
+    padding: 1.25rem;
+  }
+  .card-body h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: white;
+  }
+  .card-body p {
+    font-size: 0.85rem;
+    color: #94A3B8;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+  }
+  .card-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .tag-game { background: #1E3A5F; color: var(--cn-accent); }
+  .tag-tool { background: #2D1B4E; color: var(--cn-purple); }
+  .tag-new { background: #1B3D2F; color: var(--cn-green); }
+
+  .play-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    padding: 0.4rem 1rem;
+    background: var(--cn-orange);
+    color: white;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Quiz Battle CTA */
+  .quiz-cta {
+    background: linear-gradient(135deg, var(--cn-purple), #6D28D9);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-top: 2rem;
+    text-align: center;
+    border: 2px solid rgba(139, 92, 246, 0.3);
+  }
+  .quiz-cta h2 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 1.2rem;
+    color: white;
+    margin-bottom: 0.75rem;
+  }
+  .quiz-cta p {
+    color: #C4B5FD;
+    margin-bottom: 1.25rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .quiz-cta a {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    background: white;
+    color: var(--cn-purple);
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: transform 0.2s;
+  }
+  .quiz-cta a:hover { transform: scale(1.05); }
+
+  /* Resources Section */
+  .resources {
+    margin-top: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+  .resource-card {
+    background: var(--cn-card-bg);
+    border: 1px solid var(--cn-card-border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: border-color 0.2s;
+  }
+  .resource-card:hover { border-color: var(--cn-accent); }
+  .resource-card h4 { color: white; margin-bottom: 0.5rem; }
+  .resource-card p { font-size: 0.85rem; color: #94A3B8; }
+
+  /* Slides Grid */
+  .slides-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+  }
+  .slide-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--cn-card-bg);
+    border: 1px solid var(--cn-card-border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .slide-card:hover {
+    border-color: var(--cn-orange);
+    transform: translateY(-2px);
+  }
+  .slide-num {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.7rem;
+    color: var(--cn-orange);
+    min-width: 1.8rem;
+  }
+  .slide-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .slide-title {
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .slide-size {
+    color: #64748B;
+    font-size: 0.7rem;
+  }
+  .slide-dl {
+    font-size: 1.1rem;
+    color: var(--cn-accent);
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+  .slide-card:hover .slide-dl {
+    opacity: 1;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    color: #475569;
+    font-size: 0.8rem;
+    border-top: 1px solid var(--cn-card-border);
+    margin-top: 3rem;
+  }
+  .footer a { color: var(--cn-orange); text-decoration: none; }
+
+  /* Phase Labels */
+  .phase-label {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phase-chatgpt { background: #1B3D2F; color: #00FF88; }
+  .phase-transition { background: #3D2F1B; color: #FFB800; }
+  .phase-ide { background: #1B2F3D; color: #00D4FF; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">Code Ninjas &bull; East Gwillimbury</div>
+  <h1>🎮 Game Forge</h1>
+  <p>Vibe Code Your Own Video Games — 12 sessions of building real, playable games with AI. No coding experience required.</p>
+</div>
+
+<nav class="nav-tabs">
+  <button class="nav-tab active" onclick="filterSessions('all')">All Sessions</button>
+  <button class="nav-tab" onclick="filterSessions('chatgpt')">Phase 1: ChatGPT</button>
+  <button class="nav-tab" onclick="filterSessions('transition')">Phase 2: Transition</button>
+  <button class="nav-tab" onclick="filterSessions('ide')">Phase 3: AI IDE</button>
+</nav>
+
+<div class="content">
+  <div class="session-grid" id="sessionGrid">
+
+    <!-- Session 1 -->
+    <a href="demo-games/session-01-text-adventure.html" class="session-card" data-phase="chatgpt">
+      <div class="card-number">
+        <span class="num">01</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-chatgpt">ChatGPT</span>
+      </div>
+      <div class="card-body">
+        <h3>Press Start — Your First AI Game</h3>
+        <p>Make your first game in under 10 minutes. Learn the vibe loop: describe, generate, test, iterate.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Text Adventure</span>
+          <span class="tag tag-new">Start Here</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 2 -->
+    <a href="demo-games/session-02-click-catch.html" class="session-card" data-phase="chatgpt">
+      <div class="card-number">
+        <span class="num">02</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-chatgpt">ChatGPT</span>
+      </div>
+      <div class="card-body">
+        <h3>Click & Catch</h3>
+        <p>Build click-based games with scoring. Learn TCR: Think, Code, Run.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Clicker</span>
+          <span class="tag tag-tool">Score System</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 3 -->
+    <a href="demo-games/session-03-maze-runner.html" class="session-card" data-phase="chatgpt">
+      <div class="card-number">
+        <span class="num">03</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-chatgpt">ChatGPT</span>
+      </div>
+      <div class="card-body">
+        <h3>Maze Runner</h3>
+        <p>Navigate grids, walls, and paths. Learn keyboard controls and collision detection.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Maze</span>
+          <span class="tag tag-tool">Keyboard Controls</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 4 -->
+    <a href="demo-games/session-04-dodge-dash.html" class="session-card" data-phase="chatgpt">
+      <div class="card-number">
+        <span class="num">04</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-chatgpt">ChatGPT</span>
+      </div>
+      <div class="card-body">
+        <h3>Dodge & Dash</h3>
+        <p>Avoid falling objects. Learn spawn/destroy patterns and difficulty curves.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Dodger</span>
+          <span class="tag tag-tool">Spawning</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 5 -->
+    <a href="demo-games/session-05-quiz-quest.html" class="session-card" data-phase="chatgpt">
+      <div class="card-number">
+        <span class="num">05</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-chatgpt">ChatGPT</span>
+      </div>
+      <div class="card-body">
+        <h3>Quiz Quest</h3>
+        <p>Build your own trivia game. Learn data structures and game state management.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Quiz</span>
+          <span class="tag tag-tool">Data & State</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 6 -->
+    <a href="demo-games/session-06-pixel-fighter.html" class="session-card" data-phase="chatgpt">
+      <div class="card-number">
+        <span class="num">06</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-chatgpt">ChatGPT</span>
+      </div>
+      <div class="card-body">
+        <h3>Pixel Fighter</h3>
+        <p>2-player battle game! Learn multi-player controls and health systems.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Fighter</span>
+          <span class="tag tag-tool">2-Player</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 7 -->
+    <a href="demo-games/session-07-platformer.html" class="session-card" data-phase="transition">
+      <div class="card-number">
+        <span class="num">07</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-transition">Transition</span>
+      </div>
+      <div class="card-body">
+        <h3>Level Up — Platformer</h3>
+        <p>Build a platformer with gravity and jumping. Intro to AI IDEs (Cursor/Windsurf).</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Platformer</span>
+          <span class="tag tag-tool">AI IDE Intro</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 8 -->
+    <a href="demo-games/session-08-space-blaster.html" class="session-card" data-phase="transition">
+      <div class="card-number">
+        <span class="num">08</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-transition">Transition</span>
+      </div>
+      <div class="card-body">
+        <h3>Space Blaster</h3>
+        <p>Shoot enemies in space. Learn projectile physics and enemy AI patterns.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Shooter</span>
+          <span class="tag tag-tool">Enemy AI</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 9 -->
+    <a href="demo-games/session-09-rpg-village.html" class="session-card" data-phase="ide">
+      <div class="card-number">
+        <span class="num">09</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-ide">AI IDE</span>
+      </div>
+      <div class="card-body">
+        <h3>RPG Village</h3>
+        <p>Explore a village, talk to NPCs, collect items. Multi-file project in an AI IDE.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">RPG</span>
+          <span class="tag tag-tool">Multi-File</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 10 -->
+    <a href="demo-games/session-10-mashup-game.html" class="session-card" data-phase="ide">
+      <div class="card-number">
+        <span class="num">10</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-ide">AI IDE</span>
+      </div>
+      <div class="card-body">
+        <h3>Remix & Mashup</h3>
+        <p>Combine mechanics from previous sessions into a unique mashup game.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Mashup</span>
+          <span class="tag tag-tool">Creative Design</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 11 -->
+    <a href="demo-games/session-11-dream-game.html" class="session-card" data-phase="ide">
+      <div class="card-number">
+        <span class="num">11</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-ide">AI IDE</span>
+      </div>
+      <div class="card-body">
+        <h3>Dream Game</h3>
+        <p>Design and build your dream game from scratch. Full creative freedom.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Open-Ended</span>
+          <span class="tag tag-tool">Full Freedom</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+    <!-- Session 12 -->
+    <a href="demo-games/session-12-demo-day.html" class="session-card" data-phase="ide">
+      <div class="card-number">
+        <span class="num">12</span>
+        <span class="belt belt-all">All Belts</span>
+        <span class="phase-label phase-ide">AI IDE</span>
+      </div>
+      <div class="card-body">
+        <h3>Demo Day — Game Showcase</h3>
+        <p>Present your best game to the class. Build your Game Scroll portfolio.</p>
+        <div class="card-meta">
+          <span class="tag tag-game">Showcase</span>
+          <span class="tag tag-new">Final Session</span>
+        </div>
+        <div class="play-btn">▶ Play Demo</div>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- Quiz Battle CTA -->
+  <div class="quiz-cta">
+    <h2>⚔️ Quiz Battle</h2>
+    <p>Our own Kahoot-style multiplayer quiz platform. Ninjas create quizzes, the whole class plays together in real-time.</p>
+    <a href="https://quiz.gameforgeai.dev/" target="_blank">Launch Quiz Battle →</a>
+  </div>
+
+  </div>
+
+<div class="footer">
+  <p>🥋 <a href="https://www.codeninjas.com">Code Ninjas</a> — Game Forge: Vibe Code Your Own Video Games</p>
+  <p style="margin-top: 0.5rem;">Built with ❤️ for teaching kids to create with AI</p>
+</div>
+
+<script>
+function filterSessions(phase) {
+  const cards = document.querySelectorAll('.session-card');
+  const tabs = document.querySelectorAll('.nav-tab');
+
+  tabs.forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+
+  cards.forEach(card => {
+    if (phase === 'all' || card.dataset.phase === phase) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shadow Dojo - Session 11 Dream Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0A0A14;
+    color: #fff;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    display: block;
+    border-radius: 8px;
+    box-shadow: 0 0 40px rgba(124,58,237,0.3);
+  }
+  #screen-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(10,10,20,0.97); z-index: 200;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  #screen-overlay.hidden { display: none; }
+  .title-ninja { font-size: 80px; margin-bottom: 10px; animation: float 2s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+  #screen-overlay h1 {
+    font-size: 56px; letter-spacing: 6px;
+    background: linear-gradient(135deg, #7C3AED, #EC4899);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 5px;
+  }
+  #screen-overlay h2 { font-size: 20px; color: #666; margin-bottom: 30px; letter-spacing: 3px; }
+  .info-box {
+    background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 15px; padding: 25px 40px; margin: 15px 0; max-width: 500px;
+  }
+  .info-box p { font-size: 16px; color: #bbb; line-height: 2; }
+  .key-badge {
+    display: inline-block; background: rgba(124,58,237,0.3); border: 1px solid #7C3AED;
+    border-radius: 6px; padding: 2px 10px; font-size: 13px; font-weight: 700;
+    color: #C4B5FD; margin-right: 5px;
+  }
+  .start-btn {
+    margin-top: 25px; padding: 16px 50px; font-size: 20px; font-weight: 700;
+    background: linear-gradient(135deg, #7C3AED, #EC4899); color: #fff;
+    border: none; border-radius: 30px; cursor: pointer; transition: all 0.3s;
+    letter-spacing: 2px;
+  }
+  .start-btn:hover { transform: scale(1.08); box-shadow: 0 0 30px rgba(124,58,237,0.6); }
+  #hud {
+    position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+    display: none; gap: 25px; z-index: 20;
+    background: rgba(10,10,20,0.9); padding: 10px 30px; border-radius: 30px;
+    border: 1px solid rgba(124,58,237,0.4); backdrop-filter: blur(10px);
+  }
+  .hud-item { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; }
+  .hud-val { color: #C4B5FD; }
+  #level-announce {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    z-index: 100; display: none; text-align: center;
+  }
+  #level-announce h2 { font-size: 48px; color: #7C3AED; margin-bottom: 8px; }
+  #level-announce p { font-size: 18px; color: #888; }
+  #alert-bar {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    z-index: 50; display: none; padding: 8px 30px; border-radius: 20px;
+    font-size: 16px; font-weight: 700; animation: pulse 0.5s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .minimap-container {
+    position: fixed; bottom: 15px; right: 15px; z-index: 20;
+    background: rgba(10,10,20,0.85); border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 10px; padding: 8px;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div class="hud-item">Level: <span class="hud-val" id="hud-level">1</span></div>
+  <div class="hud-item">Time: <span class="hud-val" id="hud-time">0:00</span></div>
+  <div class="hud-item">Smoke: <span class="hud-val" id="hud-smoke">3</span></div>
+  <div class="hud-item">Spotted: <span class="hud-val" id="hud-spotted">0</span></div>
+  <div class="hud-item">Score: <span class="hud-val" id="hud-score">0</span></div>
+</div>
+
+<div id="alert-bar">SPOTTED!</div>
+<div id="level-announce"><h2></h2><p></p></div>
+
+<div class="minimap-container">
+  <canvas id="minimap" width="150" height="150"></canvas>
+</div>
+
+<div id="screen-overlay">
+  <div class="title-ninja">🥷</div>
+  <h1>SHADOW DOJO</h1>
+  <h2>A NINJA STEALTH GAME</h2>
+  <div class="info-box">
+    <p><span class="key-badge">Arrow Keys</span> Move the ninja</p>
+    <p><span class="key-badge">S</span> Smoke bomb (3 uses) - invisible for 2s</p>
+    <p>Sneak past guards to reach the exit 🚪</p>
+    <p>Guards have cone vision - stay out of sight!</p>
+    <p>If spotted, guard chases for 3 seconds</p>
+    <p>Stealth bonus: never spotted = 2x score!</p>
+  </div>
+  <button class="start-btn" onclick="startGame()">ENTER THE DOJO</button>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const miniCanvas = document.getElementById('minimap');
+const mctx = miniCanvas.getContext('2d');
+
+const W = 800, H = 800;
+canvas.width = W; canvas.height = H;
+
+// Tile size
+const T = 40;
+const COLS = W / T; // 20
+const ROWS = H / T; // 20
+
+let state = 'title';
+let player, guards, exit, smokeBombs, smokeEffects;
+let level = 1;
+let gameTime = 0;
+let timesSpotted = 0;
+let totalScore = 0;
+let keys = {};
+let walls = [];
+let frameCount = 0;
+
+// Level definitions (1 = wall, 0 = floor, P = player, E = exit, G = guard)
+const levels = [
+  // Level 1: Simple
+  {
+    guards: 3,
+    map: [
+      "11111111111111111111",
+      "1P00000000100000E001",
+      "10111011101011101111",
+      "10100000001000000011",
+      "10101110111010111011",
+      "10000010000010100011",
+      "11101010111010101111",
+      "10001000100010100011",
+      "10111011101011101011",
+      "10100000001000001011",
+      "10101111101010111011",
+      "10001000001010000011",
+      "11101011101011101111",
+      "10000010000010000011",
+      "10111010111010111011",
+      "10100000100010000011",
+      "10101110101110111011",
+      "10100010001000100011",
+      "10001011101011101011",
+      "11111111111111111111",
+    ],
+    guardPaths: [
+      [{x:5,y:3},{x:5,y:7},{x:5,y:3}],
+      [{x:11,y:5},{x:11,y:9},{x:11,y:5}],
+      [{x:8,y:13},{x:14,y:13},{x:8,y:13}],
+    ]
+  },
+  // Level 2: Medium
+  {
+    guards: 5,
+    map: [
+      "11111111111111111111",
+      "1P0000100000010000E1",
+      "10111010111010101101",
+      "10001010001000100001",
+      "11101010101110111101",
+      "10000010100000000001",
+      "10111110101011101111",
+      "10000000001010000001",
+      "10111011111010111101",
+      "10100010000010100001",
+      "10101010111110101111",
+      "10001010000000100001",
+      "11101011111010111101",
+      "10000000001010000001",
+      "10111011101010111101",
+      "10001000100010100001",
+      "10101110101110101111",
+      "10100000100000000001",
+      "10111110111011101101",
+      "11111111111111111111",
+    ],
+    guardPaths: [
+      [{x:7,y:3},{x:7,y:7},{x:7,y:3}],
+      [{x:3,y:9},{x:3,y:13},{x:3,y:9}],
+      [{x:13,y:5},{x:13,y:11},{x:13,y:5}],
+      [{x:9,y:15},{x:15,y:15},{x:9,y:15}],
+      [{x:11,y:1},{x:11,y:5},{x:11,y:1}],
+    ]
+  },
+  // Level 3: Hard
+  {
+    guards: 7,
+    map: [
+      "11111111111111111111",
+      "1P000010000001000001",
+      "11110010111001011101",
+      "10000010100001000001",
+      "10111010100111011111",
+      "10100000100100000001",
+      "10101110100101111011",
+      "10001000100100010001",
+      "11101011110100010101",
+      "10001010000100010101",
+      "10111010111111010101",
+      "10000010000001010001",
+      "10111011111001011101",
+      "10000000001001000001",
+      "10111110101001011111",
+      "10100000101001010001",
+      "10101111101111010101",
+      "10100000000000000101",
+      "10111111101111111E01",
+      "11111111111111111111",
+    ],
+    guardPaths: [
+      [{x:3,y:3},{x:3,y:9},{x:3,y:3}],
+      [{x:7,y:1},{x:7,y:7},{x:7,y:1}],
+      [{x:15,y:3},{x:14,y:9},{x:15,y:3}],
+      [{x:5,y:11},{x:5,y:15},{x:5,y:11}],
+      [{x:12,y:9},{x:12,y:15},{x:12,y:9}],
+      [{x:1,y:15},{x:7,y:15},{x:1,y:15}],
+      [{x:17,y:11},{x:16,y:17},{x:17,y:11}],
+    ]
+  }
+];
+
+function parseLevel(lvl) {
+  const data = levels[lvl - 1];
+  walls = [];
+  let playerPos = null;
+  let exitPos = null;
+
+  for (let r = 0; r < ROWS; r++) {
+    walls[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      const ch = data.map[r]?.[c] || '1';
+      if (ch === '1') {
+        walls[r][c] = 1;
+      } else {
+        walls[r][c] = 0;
+        if (ch === 'P') playerPos = { x: c * T + T/2, y: r * T + T/2 };
+        if (ch === 'E') exitPos = { x: c * T + T/2, y: r * T + T/2 };
+      }
+    }
+  }
+
+  player = {
+    x: playerPos.x, y: playerPos.y,
+    speed: 2.5, radius: 12,
+    invisible: false, invisTimer: 0,
+    smokeBombs: 3,
+  };
+
+  exit = { x: exitPos.x, y: exitPos.y, radius: 15 };
+
+  guards = data.guardPaths.map((path, i) => ({
+    x: path[0].x * T + T/2,
+    y: path[0].y * T + T/2,
+    speed: 1.2 + level * 0.2,
+    radius: 14,
+    angle: Math.PI/2 * i,
+    fov: Math.PI / 2.5,
+    viewDist: 120 + level * 20,
+    path: path.map(p => ({ x: p.x * T + T/2, y: p.y * T + T/2 })),
+    pathIdx: 0,
+    state: 'patrol', // patrol, alert, chase
+    alertTimer: 0,
+    chaseTimer: 0,
+    lastKnownX: 0, lastKnownY: 0,
+  }));
+
+  smokeEffects = [];
+}
+
+function startGame() {
+  document.getElementById('screen-overlay').classList.add('hidden');
+  document.getElementById('hud').style.display = 'flex';
+  level = 1;
+  totalScore = 0;
+  timesSpotted = 0;
+  gameTime = 0;
+  loadLevel(level);
+}
+
+function loadLevel(lvl) {
+  parseLevel(lvl);
+  state = 'playing';
+  // Announce level
+  const ann = document.getElementById('level-announce');
+  ann.querySelector('h2').textContent = `Level ${lvl}`;
+  ann.querySelector('p').textContent = lvl === 1 ? 'The Outer Gardens' : lvl === 2 ? 'The Inner Sanctum' : 'The Shadow Master\'s Chamber';
+  ann.style.display = 'block';
+  ann.style.animation = 'none';
+  ann.offsetHeight;
+  ann.style.opacity = '1';
+  setTimeout(() => { ann.style.display = 'none'; }, 2000);
+}
+
+function isWall(px, py) {
+  const c = Math.floor(px / T);
+  const r = Math.floor(py / T);
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return true;
+  return walls[r][c] === 1;
+}
+
+function canMoveTo(x, y, radius) {
+  // Check 4 corners of bounding box
+  return !isWall(x - radius, y - radius) &&
+         !isWall(x + radius, y - radius) &&
+         !isWall(x - radius, y + radius) &&
+         !isWall(x + radius, y + radius);
+}
+
+function lineOfSight(x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const steps = Math.ceil(dist / 10);
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const px = x1 + dx * t;
+    const py = y1 + dy * t;
+    if (isWall(px, py)) return false;
+  }
+  return true;
+}
+
+function updatePlayer() {
+  let dx = 0, dy = 0;
+  if (keys['ArrowLeft']) dx = -1;
+  if (keys['ArrowRight']) dx = 1;
+  if (keys['ArrowUp']) dy = -1;
+  if (keys['ArrowDown']) dy = 1;
+
+  if (dx !== 0 && dy !== 0) {
+    dx *= 0.707; dy *= 0.707;
+  }
+
+  const nx = player.x + dx * player.speed;
+  const ny = player.y + dy * player.speed;
+
+  if (canMoveTo(nx, player.y, player.radius)) player.x = nx;
+  if (canMoveTo(player.x, ny, player.radius)) player.y = ny;
+
+  // Invisible timer
+  if (player.invisTimer > 0) {
+    player.invisTimer--;
+    if (player.invisTimer <= 0) player.invisible = false;
+  }
+
+  // Check exit
+  const edx = player.x - exit.x;
+  const edy = player.y - exit.y;
+  if (Math.sqrt(edx*edx + edy*edy) < player.radius + exit.radius) {
+    levelComplete();
+  }
+}
+
+function updateGuards() {
+  guards.forEach(g => {
+    if (g.state === 'patrol') {
+      // Follow path
+      const target = g.path[g.pathIdx];
+      const dx = target.x - g.x;
+      const dy = target.y - g.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+
+      if (dist < 3) {
+        g.pathIdx = (g.pathIdx + 1) % g.path.length;
+      } else {
+        const moveX = (dx/dist) * g.speed;
+        const moveY = (dy/dist) * g.speed;
+        if (canMoveTo(g.x + moveX, g.y, g.radius)) g.x += moveX;
+        if (canMoveTo(g.x, g.y + moveY, g.radius)) g.y += moveY;
+        g.angle = Math.atan2(dy, dx);
+      }
+
+      // Check if player visible
+      if (!player.invisible) {
+        const pdx = player.x - g.x;
+        const pdy = player.y - g.y;
+        const pdist = Math.sqrt(pdx*pdx + pdy*pdy);
+        const pangle = Math.atan2(pdy, pdx);
+        let angleDiff = pangle - g.angle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+        if (pdist < g.viewDist && Math.abs(angleDiff) < g.fov/2) {
+          if (lineOfSight(g.x, g.y, player.x, player.y)) {
+            g.state = 'chase';
+            g.chaseTimer = 180; // 3 seconds at 60fps
+            g.lastKnownX = player.x;
+            g.lastKnownY = player.y;
+            timesSpotted++;
+            showAlert();
+          }
+        }
+      }
+    } else if (g.state === 'chase') {
+      g.chaseTimer--;
+      // Update last known position if still visible
+      if (!player.invisible) {
+        const pdx = player.x - g.x;
+        const pdy = player.y - g.y;
+        if (lineOfSight(g.x, g.y, player.x, player.y)) {
+          g.lastKnownX = player.x;
+          g.lastKnownY = player.y;
+        }
+      }
+
+      // Chase toward last known position
+      const dx = g.lastKnownX - g.x;
+      const dy = g.lastKnownY - g.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const chaseSpeed = g.speed * 1.8;
+
+      if (dist > 3) {
+        const moveX = (dx/dist) * chaseSpeed;
+        const moveY = (dy/dist) * chaseSpeed;
+        if (canMoveTo(g.x + moveX, g.y, g.radius)) g.x += moveX;
+        if (canMoveTo(g.x, g.y + moveY, g.radius)) g.y += moveY;
+        g.angle = Math.atan2(dy, dx);
+      }
+
+      // Check if caught player
+      const cdx = player.x - g.x;
+      const cdy = player.y - g.y;
+      if (Math.sqrt(cdx*cdx + cdy*cdy) < player.radius + g.radius + 5) {
+        if (!player.invisible) {
+          caught();
+          return;
+        }
+      }
+
+      if (g.chaseTimer <= 0) {
+        g.state = 'patrol';
+      }
+    }
+  });
+}
+
+function showAlert() {
+  const bar = document.getElementById('alert-bar');
+  bar.style.display = 'block';
+  bar.style.background = 'rgba(236,72,153,0.3)';
+  bar.style.border = '2px solid #EC4899';
+  bar.style.color = '#EC4899';
+  bar.textContent = 'SPOTTED!';
+  setTimeout(() => { bar.style.display = 'none'; }, 2000);
+}
+
+function caught() {
+  state = 'gameover';
+  const overlay = document.getElementById('screen-overlay');
+  overlay.classList.remove('hidden');
+  overlay.innerHTML = `
+    <div class="title-ninja" style="font-size:60px">💀</div>
+    <h1 style="font-size:48px;background:linear-gradient(135deg,#EC4899,#F59E0B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">CAUGHT!</h1>
+    <h2 style="color:#888">The guard found you...</h2>
+    <div class="info-box" style="text-align:center">
+      <p>Level Reached: ${level}</p>
+      <p>Time: ${formatTime(gameTime)}</p>
+      <p>Times Spotted: ${timesSpotted}</p>
+      <p>Score: ${totalScore}</p>
+    </div>
+    <button class="start-btn" onclick="startGame()">TRY AGAIN</button>
+  `;
+}
+
+function levelComplete() {
+  const timeBonus = Math.max(0, 5000 - gameTime * 2);
+  const stealthBonus = timesSpotted === 0 ? 3000 : 0;
+  const levelScore = 1000 + timeBonus + stealthBonus;
+  totalScore += levelScore;
+
+  if (level >= 3) {
+    victory();
+  } else {
+    level++;
+    gameTime = 0;
+    const ann = document.getElementById('level-announce');
+    ann.querySelector('h2').textContent = `Level Complete! +${levelScore}`;
+    ann.querySelector('p').textContent = stealthBonus > 0 ? 'Perfect Stealth Bonus! 2x Score!' : `Spotted ${timesSpotted} times`;
+    ann.style.display = 'block';
+    setTimeout(() => {
+      ann.style.display = 'none';
+      loadLevel(level);
+    }, 2000);
+  }
+}
+
+function victory() {
+  state = 'victory';
+  const overlay = document.getElementById('screen-overlay');
+  overlay.classList.remove('hidden');
+  overlay.innerHTML = `
+    <div class="title-ninja">🥷</div>
+    <h1 style="font-size:48px;background:linear-gradient(135deg,#10B981,#7C3AED);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">SHADOW MASTER!</h1>
+    <h2 style="color:#10B981">All levels completed!</h2>
+    <div class="info-box" style="text-align:center">
+      <p style="font-size:24px;color:#10B981;font-weight:700">Final Score: ${totalScore}</p>
+      <p>Total Time: ${formatTime(gameTime)}</p>
+      <p>Times Spotted: ${timesSpotted}</p>
+      <p>${timesSpotted === 0 ? 'PERFECT STEALTH! True Shadow Master!' : 'Good run! Try for zero detections!'}</p>
+    </div>
+    <button class="start-btn" onclick="startGame()">PLAY AGAIN</button>
+  `;
+}
+
+function formatTime(frames) {
+  const secs = Math.floor(frames / 60);
+  const mins = Math.floor(secs / 60);
+  return `${mins}:${String(secs % 60).padStart(2, '0')}`;
+}
+
+function useSmokeBomb() {
+  if (player.smokeBombs <= 0 || player.invisible) return;
+  player.smokeBombs--;
+  player.invisible = true;
+  player.invisTimer = 120; // 2 seconds
+
+  smokeEffects.push({
+    x: player.x, y: player.y,
+    life: 90, maxLife: 90,
+    particles: Array.from({length: 20}, () => ({
+      x: player.x + (Math.random()-0.5)*30,
+      y: player.y + (Math.random()-0.5)*30,
+      vx: (Math.random()-0.5)*3,
+      vy: (Math.random()-0.5)*3,
+      size: 10 + Math.random()*15,
+    }))
+  });
+
+  // Break chase of nearby guards
+  guards.forEach(g => {
+    if (g.state === 'chase') {
+      const dx = g.x - player.x;
+      const dy = g.y - player.y;
+      if (Math.sqrt(dx*dx+dy*dy) < 200) {
+        g.state = 'patrol';
+        g.chaseTimer = 0;
+      }
+    }
+  });
+}
+
+function updateHUD() {
+  document.getElementById('hud-level').textContent = level;
+  document.getElementById('hud-time').textContent = formatTime(gameTime);
+  document.getElementById('hud-smoke').textContent = player.smokeBombs;
+  document.getElementById('hud-spotted').textContent = timesSpotted;
+  document.getElementById('hud-score').textContent = totalScore;
+}
+
+function draw() {
+  // Clear
+  ctx.fillStyle = '#0A0A14';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw walls
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (walls[r][c] === 1) {
+        const x = c * T, y = r * T;
+        // Wall shading
+        ctx.fillStyle = '#1A1A2E';
+        ctx.fillRect(x, y, T, T);
+        ctx.strokeStyle = 'rgba(124,58,237,0.15)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, T, T);
+        // Edge highlights
+        if (r > 0 && walls[r-1]?.[c] === 0) {
+          ctx.fillStyle = 'rgba(124,58,237,0.2)';
+          ctx.fillRect(x, y, T, 3);
+        }
+      } else {
+        // Floor tiles
+        ctx.fillStyle = (r + c) % 2 === 0 ? '#0D0D1A' : '#0F0F1F';
+        ctx.fillRect(c * T, r * T, T, T);
+      }
+    }
+  }
+
+  // Exit glow
+  const exitPulse = Math.sin(frameCount / 20) * 0.3 + 0.7;
+  ctx.shadowColor = '#10B981';
+  ctx.shadowBlur = 20 * exitPulse;
+  ctx.font = '28px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🚪', exit.x, exit.y);
+  ctx.shadowBlur = 0;
+
+  // Guard vision cones
+  guards.forEach(g => {
+    const isChasing = g.state === 'chase';
+    const coneColor = isChasing ? 'rgba(236,72,153,0.12)' : 'rgba(245,158,11,0.08)';
+    const edgeColor = isChasing ? 'rgba(236,72,153,0.25)' : 'rgba(245,158,11,0.15)';
+
+    // Draw filled vision cone with wall clipping
+    ctx.fillStyle = coneColor;
+    ctx.beginPath();
+    ctx.moveTo(g.x, g.y);
+
+    const segments = 30;
+    for (let i = 0; i <= segments; i++) {
+      const a = g.angle - g.fov/2 + (g.fov * i / segments);
+      // Raycast to find wall distance
+      let rayDist = g.viewDist;
+      for (let d = 0; d < g.viewDist; d += 5) {
+        const rx = g.x + Math.cos(a) * d;
+        const ry = g.y + Math.sin(a) * d;
+        if (isWall(rx, ry)) {
+          rayDist = d;
+          break;
+        }
+      }
+      const px = g.x + Math.cos(a) * rayDist;
+      const py = g.y + Math.sin(a) * rayDist;
+      ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Edge lines
+    ctx.strokeStyle = edgeColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const leftAngle = g.angle - g.fov/2;
+    const rightAngle = g.angle + g.fov/2;
+    let ld = g.viewDist, rd = g.viewDist;
+    for (let d = 0; d < g.viewDist; d += 5) {
+      if (isWall(g.x + Math.cos(leftAngle)*d, g.y + Math.sin(leftAngle)*d)) { ld = d; break; }
+    }
+    for (let d = 0; d < g.viewDist; d += 5) {
+      if (isWall(g.x + Math.cos(rightAngle)*d, g.y + Math.sin(rightAngle)*d)) { rd = d; break; }
+    }
+    ctx.moveTo(g.x, g.y);
+    ctx.lineTo(g.x + Math.cos(leftAngle)*ld, g.y + Math.sin(leftAngle)*ld);
+    ctx.moveTo(g.x, g.y);
+    ctx.lineTo(g.x + Math.cos(rightAngle)*rd, g.y + Math.sin(rightAngle)*rd);
+    ctx.stroke();
+  });
+
+  // Smoke effects
+  smokeEffects.forEach(se => {
+    const alpha = se.life / se.maxLife;
+    se.particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.98;
+      p.vy *= 0.98;
+      ctx.fillStyle = `rgba(120,120,150,${alpha * 0.4})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * (1 + (1-alpha)*0.5), 0, Math.PI*2);
+      ctx.fill();
+    });
+    se.life--;
+  });
+  smokeEffects = smokeEffects.filter(se => se.life > 0);
+
+  // Guards
+  guards.forEach(g => {
+    ctx.font = '26px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (g.state === 'chase') {
+      ctx.shadowColor = '#EC4899';
+      ctx.shadowBlur = 15;
+    } else {
+      ctx.shadowColor = '#F59E0B';
+      ctx.shadowBlur = 5;
+    }
+    ctx.fillText('👮', g.x, g.y);
+    ctx.shadowBlur = 0;
+
+    // State indicator
+    if (g.state === 'chase') {
+      ctx.font = '14px serif';
+      ctx.fillText('!', g.x, g.y - 22);
+    }
+  });
+
+  // Player
+  if (player.invisible) {
+    ctx.globalAlpha = 0.25 + Math.sin(frameCount / 5) * 0.15;
+  }
+  ctx.font = '26px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = player.invisible ? '#7C3AED' : 'transparent';
+  ctx.shadowBlur = player.invisible ? 20 : 0;
+  ctx.fillText('🥷', player.x, player.y);
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+
+  // Minimap
+  drawMinimap();
+}
+
+function drawMinimap() {
+  const mw = 150, mh = 150;
+  const sx = mw / (COLS * T);
+  const sy = mh / (ROWS * T);
+  mctx.fillStyle = 'rgba(10,10,20,0.9)';
+  mctx.fillRect(0, 0, mw, mh);
+
+  // Walls
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (walls[r][c] === 1) {
+        mctx.fillStyle = '#2A2A3E';
+        mctx.fillRect(c * T * sx, r * T * sy, T * sx, T * sy);
+      }
+    }
+  }
+
+  // Exit
+  mctx.fillStyle = '#10B981';
+  mctx.beginPath();
+  mctx.arc(exit.x * sx, exit.y * sy, 3, 0, Math.PI*2);
+  mctx.fill();
+
+  // Guards
+  guards.forEach(g => {
+    mctx.fillStyle = g.state === 'chase' ? '#EC4899' : '#F59E0B';
+    mctx.beginPath();
+    mctx.arc(g.x * sx, g.y * sy, 2.5, 0, Math.PI*2);
+    mctx.fill();
+  });
+
+  // Player
+  mctx.fillStyle = player.invisible ? '#7C3AED' : '#fff';
+  mctx.beginPath();
+  mctx.arc(player.x * sx, player.y * sy, 3, 0, Math.PI*2);
+  mctx.fill();
+}
+
+function gameLoop() {
+  frameCount++;
+  if (state === 'playing') {
+    gameTime++;
+    updatePlayer();
+    updateGuards();
+    updateHUD();
+  }
+  if (state !== 'title' && state !== 'gameover' && state !== 'victory') {
+    draw();
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+  if ((e.key === 's' || e.key === 'S') && e.shiftKey === false && state === 'playing') {
+    useSmokeBomb();
+  }
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+gameLoop();
+</script>
+</body>
+</html>

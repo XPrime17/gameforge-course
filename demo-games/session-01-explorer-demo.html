@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sunny's Big Day - Explorer Adventure</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: linear-gradient(135deg, #FFF7ED, #FEF3C7);
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .game-container {
+    background: white;
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 700px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    text-align: center;
+  }
+
+  .emoji-scene {
+    font-size: 80px;
+    margin: 20px 0;
+    animation: bounce 2s ease-in-out infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+
+  h1 {
+    font-size: 32px;
+    color: #D97706;
+    margin-bottom: 10px;
+  }
+
+  .story-text {
+    font-size: 22px;
+    color: #1F2937;
+    line-height: 1.6;
+    margin: 20px 0 30px;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+  }
+
+  .choice-btn {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: white;
+    border: none;
+    padding: 18px 40px;
+    font-size: 20px;
+    border-radius: 16px;
+    cursor: pointer;
+    width: 80%;
+    max-width: 400px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+    font-weight: 600;
+  }
+
+  .choice-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  }
+
+  .choice-btn.blue {
+    background: linear-gradient(135deg, #3B82F6, #2563EB);
+  }
+
+  .choice-btn.blue:hover {
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  }
+
+  .ending {
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: white;
+    padding: 20px 30px;
+    border-radius: 16px;
+    font-size: 20px;
+    margin: 20px 0;
+    line-height: 1.5;
+  }
+
+  .restart-btn {
+    background: #6B7280;
+    color: white;
+    border: none;
+    padding: 14px 30px;
+    font-size: 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-top: 15px;
+    font-family: inherit;
+  }
+
+  .restart-btn:hover { background: #4B5563; }
+
+  .tier-badge {
+    display: inline-block;
+    background: #FEF3C7;
+    color: #D97706;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="game-container" id="game">
+  <div class="tier-badge">🟡 EXPLORER</div>
+  <h1>Sunny's Big Day!</h1>
+  <div class="emoji-scene" id="emoji">🐱</div>
+  <div class="story-text" id="story">
+    Sunny the cat wakes up and stretches. It's a beautiful day!
+    Where should Sunny go?
+  </div>
+  <div class="choices" id="choices">
+    <button class="choice-btn" onclick="goTo('park')">🌳 Go to the Park</button>
+    <button class="choice-btn blue" onclick="goTo('beach')">🏖️ Go to the Beach</button>
+  </div>
+</div>
+
+<script>
+const scenes = {
+  park: {
+    emoji: "🌳",
+    text: "Sunny runs to the park! There's a big tree with something shiny at the top, and a pond with ducks swimming around.",
+    choices: [
+      { text: "🌟 Climb the tree", next: "tree" },
+      { text: "🦆 Play with the ducks", next: "ducks" }
+    ]
+  },
+  beach: {
+    emoji: "🏖️",
+    text: "Sunny arrives at the beach! The sand is warm and the waves are splashing. There's a sandcastle and a friendly crab!",
+    choices: [
+      { text: "🏰 Build a sandcastle", next: "castle" },
+      { text: "🦀 Follow the crab", next: "crab" }
+    ]
+  },
+  tree: {
+    emoji: "⭐",
+    text: "Sunny climbs to the top and finds a golden star! All the animals in the park cheer!",
+    ending: "🏆 ENDING: Star Explorer! Sunny found the hidden treasure of the park!"
+  },
+  ducks: {
+    emoji: "🦆",
+    text: "The ducks love Sunny! They splash and play together all afternoon. Sunny makes three new duck friends!",
+    ending: "💛 ENDING: Best Friends! Sunny and the ducks are pals forever!"
+  },
+  castle: {
+    emoji: "🏰",
+    text: "Sunny builds the BIGGEST sandcastle on the whole beach! Everyone stops to take photos!",
+    ending: "👑 ENDING: Castle Champion! Sunny is the best builder on the beach!"
+  },
+  crab: {
+    emoji: "🦀",
+    text: "The crab leads Sunny to a hidden tide pool full of colorful sea stars and tiny fish! It's like a secret underwater world!",
+    ending: "🌊 ENDING: Secret Discovery! Sunny found the ocean's hidden treasure!"
+  }
+};
+
+function goTo(sceneId) {
+  const scene = scenes[sceneId];
+  document.getElementById("emoji").textContent = scene.emoji;
+  document.getElementById("story").textContent = scene.text;
+
+  const choicesDiv = document.getElementById("choices");
+  choicesDiv.innerHTML = "";
+
+  if (scene.ending) {
+    const endDiv = document.createElement("div");
+    endDiv.className = "ending";
+    endDiv.textContent = scene.ending;
+    choicesDiv.appendChild(endDiv);
+
+    const btn = document.createElement("button");
+    btn.className = "restart-btn";
+    btn.textContent = "🔄 Play Again!";
+    btn.onclick = () => location.reload();
+    choicesDiv.appendChild(btn);
+  } else {
+    scene.choices.forEach((choice, i) => {
+      const btn = document.createElement("button");
+      btn.className = "choice-btn" + (i === 1 ? " blue" : "");
+      btn.textContent = choice.text;
+      btn.onclick = () => goTo(choice.next);
+      choicesDiv.appendChild(btn);
+    });
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shadow Maze - Ninja Maze Runner</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+  }
+
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(16,185,129,0.3); }
+    50% { box-shadow: 0 0 20px rgba(16,185,129,0.6); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
+  @keyframes collectPop {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(2); opacity: 0.5; }
+    100% { transform: scale(0); opacity: 0; }
+  }
+
+  @keyframes ninjaMove {
+    0% { transform: scale(0.9); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes levelUp {
+    0% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: 0; transform: scale(1.5); }
+  }
+
+  @keyframes doorPulse {
+    0%, 100% { box-shadow: inset 0 0 8px rgba(245,158,11,0.3); }
+    50% { box-shadow: inset 0 0 20px rgba(245,158,11,0.8); }
+  }
+
+  body {
+    background: #1A1A2E;
+    color: #E0E0E0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .container {
+    max-width: 650px;
+    width: 95%;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+  }
+
+  header {
+    text-align: center;
+    padding: 10px 0 5px;
+    width: 100%;
+  }
+
+  h1 {
+    font-size: 1.8em;
+    background: linear-gradient(90deg, #7C3AED, #10B981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 2px;
+  }
+
+  .subtitle {
+    color: #7C3AED;
+    font-size: 0.75em;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+    margin: 8px 0;
+  }
+
+  .hud-item {
+    flex: 1;
+    background: linear-gradient(145deg, rgba(30,30,60,0.9), rgba(20,20,40,0.95));
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 10px;
+    padding: 8px;
+    text-align: center;
+  }
+
+  .hud-label {
+    font-size: 0.6em;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .hud-value {
+    font-size: 1.2em;
+    font-weight: bold;
+  }
+
+  .hud-level .hud-value { color: #7C3AED; }
+  .hud-stars .hud-value { color: #F59E0B; }
+  .hud-timer .hud-value { color: #10B981; }
+  .hud-moves .hud-value { color: #EC4899; }
+
+  .maze-wrapper {
+    position: relative;
+    margin: 8px 0;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .maze {
+    display: grid;
+    gap: 0;
+    border: 3px solid rgba(124,58,237,0.4);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .maze-cell {
+    width: 100%;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1em;
+    transition: background 0.15s;
+    position: relative;
+  }
+
+  .wall {
+    background: linear-gradient(145deg, #1a1a3e, #12122a);
+    border: 1px solid rgba(20,20,50,0.8);
+  }
+
+  .path {
+    background: linear-gradient(145deg, #252545, #1e1e3a);
+    border: 1px solid rgba(50,50,80,0.2);
+  }
+
+  .path-visited {
+    background: linear-gradient(145deg, #2a2a50, #222240);
+  }
+
+  .player {
+    background: linear-gradient(145deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+    animation: glow 2s infinite;
+    z-index: 2;
+  }
+
+  .player .cell-emoji {
+    animation: ninjaMove 0.2s ease-out;
+  }
+
+  .star-cell .cell-emoji {
+    animation: float 2s ease-in-out infinite;
+  }
+
+  .exit-cell {
+    animation: doorPulse 2s infinite;
+  }
+
+  .exit-locked {
+    opacity: 0.4;
+  }
+
+  .exit-unlocked {
+    opacity: 1;
+  }
+
+  .cell-emoji {
+    font-size: 1.4em;
+    line-height: 1;
+    position: relative;
+    z-index: 1;
+  }
+
+  .collect-effect {
+    position: absolute;
+    font-size: 1.6em;
+    animation: collectPop 0.5s ease-out forwards;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .level-banner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #F59E0B;
+    text-shadow: 0 0 30px rgba(245,158,11,0.8);
+    animation: levelUp 2s ease-out forwards;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+  }
+
+  .controls-hint {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 5px 0;
+    font-size: 0.75em;
+    color: #666;
+  }
+
+  .controls-hint kbd {
+    background: rgba(124,58,237,0.2);
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: #aaa;
+    font-family: monospace;
+  }
+
+  .mobile-controls {
+    display: none;
+    gap: 5px;
+    margin: 10px 0;
+  }
+
+  .d-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 50px);
+    grid-template-rows: repeat(3, 50px);
+    gap: 4px;
+  }
+
+  .d-btn {
+    background: linear-gradient(145deg, rgba(124,58,237,0.3), rgba(124,58,237,0.1));
+    border: 1px solid rgba(124,58,237,0.4);
+    border-radius: 10px;
+    color: white;
+    font-size: 1.4em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .d-btn:active {
+    background: linear-gradient(145deg, rgba(124,58,237,0.5), rgba(124,58,237,0.3));
+    transform: scale(0.95);
+  }
+
+  .d-btn.empty {
+    background: none;
+    border: none;
+  }
+
+  .overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(26,26,46,0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .overlay-content {
+    text-align: center;
+    max-width: 420px;
+    padding: 35px;
+    background: linear-gradient(145deg, rgba(40,40,70,0.95), rgba(25,25,50,0.98));
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .overlay-emoji { font-size: 3.5em; margin-bottom: 10px; }
+
+  .overlay-title {
+    font-size: 1.8em;
+    margin-bottom: 8px;
+    background: linear-gradient(90deg, #7C3AED, #10B981, #F59E0B, #7C3AED);
+    background-size: 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
+  }
+
+  .overlay-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 15px 0;
+  }
+
+  .stat-box {
+    background: rgba(124,58,237,0.1);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 10px;
+    padding: 10px;
+  }
+
+  .stat-label { font-size: 0.7em; color: #888; }
+  .stat-value { font-size: 1.2em; font-weight: bold; color: #10B981; }
+
+  .play-btn {
+    background: linear-gradient(135deg, #7C3AED, #6D28D9);
+    border: none;
+    color: white;
+    padding: 12px 36px;
+    border-radius: 30px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+    margin-top: 8px;
+  }
+
+  .play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(124,58,237,0.6);
+  }
+
+  .instructions {
+    color: #999;
+    font-size: 0.8em;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+
+  footer {
+    text-align: center;
+    padding: 8px;
+    color: #555;
+    font-size: 0.75em;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .mobile-controls { display: flex; justify-content: center; }
+    .controls-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Shadow Maze</h1>
+    <div class="subtitle">Ninja Maze Runner</div>
+  </header>
+
+  <div class="hud">
+    <div class="hud-item hud-level">
+      <div class="hud-label">Level</div>
+      <div class="hud-value" id="level">1</div>
+    </div>
+    <div class="hud-item hud-stars">
+      <div class="hud-label">Stars</div>
+      <div class="hud-value" id="stars">0/5</div>
+    </div>
+    <div class="hud-item hud-timer">
+      <div class="hud-label">Time</div>
+      <div class="hud-value" id="timer">0:00</div>
+    </div>
+    <div class="hud-item hud-moves">
+      <div class="hud-label">Moves</div>
+      <div class="hud-value" id="moves">0</div>
+    </div>
+  </div>
+
+  <div class="maze-wrapper" id="maze-wrapper">
+    <div class="maze" id="maze"></div>
+  </div>
+
+  <div class="controls-hint">
+    <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or Arrow Keys to move</span>
+    <span>Collect all <span style="color:#F59E0B">stars</span> then reach the <span style="color:#F59E0B">door</span>!</span>
+  </div>
+
+  <div class="mobile-controls">
+    <div class="d-pad">
+      <div class="d-btn empty"></div>
+      <div class="d-btn" ontouchstart="movePlayer(0,-1);event.preventDefault();" onclick="movePlayer(0,-1)">&#x25B2;</div>
+      <div class="d-btn empty"></div>
+      <div class="d-btn" ontouchstart="movePlayer(-1,0);event.preventDefault();" onclick="movePlayer(-1,0)">&#x25C0;</div>
+      <div class="d-btn empty"></div>
+      <div class="d-btn" ontouchstart="movePlayer(1,0);event.preventDefault();" onclick="movePlayer(1,0)">&#x25B6;</div>
+      <div class="d-btn empty"></div>
+      <div class="d-btn" ontouchstart="movePlayer(0,1);event.preventDefault();" onclick="movePlayer(0,1)">&#x25BC;</div>
+      <div class="d-btn empty"></div>
+    </div>
+  </div>
+
+  <footer>Session 03 Demo - Vibe Coding Games Course</footer>
+</div>
+
+<!-- Start Overlay -->
+<div class="overlay" id="start-overlay">
+  <div class="overlay-content">
+    <div class="overlay-emoji">🥷</div>
+    <div class="overlay-title">Shadow Maze</div>
+    <div class="instructions">
+      Guide the ninja through the maze!<br><br>
+      <span style="font-size:1.2em">🥷</span> You &nbsp;&nbsp;
+      <span style="font-size:1.2em">⭐</span> Collect all 5 &nbsp;&nbsp;
+      <span style="font-size:1.2em">🚪</span> Exit<br><br>
+      Use <strong>WASD</strong> or <strong>Arrow Keys</strong> to move.<br>
+      Collect ALL stars before the exit unlocks!<br>
+      2 levels of increasing difficulty.
+    </div>
+    <button class="play-btn" onclick="startGame()">Start! 🎮</button>
+  </div>
+</div>
+
+<!-- Win Overlay -->
+<div class="overlay" id="win-overlay" style="display:none">
+  <div class="overlay-content">
+    <div class="overlay-emoji">🏆</div>
+    <div class="overlay-title">You Win!</div>
+    <div class="overlay-stats">
+      <div class="stat-box">
+        <div class="stat-label">Total Time</div>
+        <div class="stat-value" id="win-time">0:00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Total Moves</div>
+        <div class="stat-value" id="win-moves">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Stars Found</div>
+        <div class="stat-value" id="win-stars">10/10</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Rating</div>
+        <div class="stat-value" id="win-rating">-</div>
+      </div>
+    </div>
+    <button class="play-btn" onclick="startGame()">Play Again 🔄</button>
+  </div>
+</div>
+
+<script>
+// W = wall, P = path, S = star, E = exit, N = player start
+const LEVELS = [
+  // Level 1 - 15x15
+  {
+    map: [
+      "WWWWWWWWWWWWWWW",
+      "WNPPPWPPPPPWPPW",
+      "WPWPWWWPWWPWWPW",
+      "WPPPPPPPPWPPPPW",
+      "WWWPWWWWPWPWWPW",
+      "WSPPPWSPPPPPWPW",
+      "WPWWPWPWWWWPWPW",
+      "WPPWPPPWPPPPPWW",
+      "WPWWWWPWPWWWPPW",
+      "WPPPPWPPPWSPPPW",
+      "WWWPWWWWWWPWWPW",
+      "WPPPPPSPPPPPPPW",
+      "WPWWWWWPWWWWWPW",
+      "WPPPPPPPPPPPEPW",
+      "WWWWWWWWWWWWWWW",
+    ],
+    starCount: 5
+  },
+  // Level 2 - 15x15 (harder maze)
+  {
+    map: [
+      "WWWWWWWWWWWWWWW",
+      "WNPPWPPPPWPPPWW",
+      "WWPWWPWWPWPWPPW",
+      "WSPPPPWPPPPWPPW",
+      "WPWWWPWPWWPWWPW",
+      "WPPWPPPSPWPPPWW",
+      "WWPWPWWWPWPWPPW",
+      "WPPPPPPWPPPWPPW",
+      "WPWWWWPWWWPWWPW",
+      "WPPSPPPPPWPPPWW",
+      "WWPWWWWWPWPWWPW",
+      "WPPPPWPPPPPWPPW",
+      "WPWWPWPWWWPWWPW",
+      "WPPPPPSPPPPPEPW",
+      "WWWWWWWWWWWWWWW",
+    ],
+    starCount: 5
+  }
+];
+
+let currentLevel = 0;
+let playerX = 0;
+let playerY = 0;
+let starsCollected = 0;
+let totalStarsCollected = 0;
+let totalStarsNeeded = 0;
+let moveCount = 0;
+let totalMoves = 0;
+let timerSeconds = 0;
+let timerInterval = null;
+let gameRunning = false;
+let grid = [];
+let visited = [];
+let mazeWidth = 0;
+let mazeHeight = 0;
+
+function parseLevel(level) {
+  const map = level.map;
+  mazeHeight = map.length;
+  mazeWidth = map[0].length;
+  grid = [];
+  visited = [];
+  starsCollected = 0;
+  moveCount = 0;
+
+  for (let y = 0; y < mazeHeight; y++) {
+    grid[y] = [];
+    visited[y] = [];
+    for (let x = 0; x < mazeWidth; x++) {
+      const ch = map[y][x];
+      grid[y][x] = ch;
+      visited[y][x] = false;
+      if (ch === 'N') {
+        playerX = x;
+        playerY = y;
+        grid[y][x] = 'P'; // Player start is a path
+      }
+    }
+  }
+}
+
+function renderMaze() {
+  const mazeEl = document.getElementById('maze');
+  // Calculate cell size based on available space
+  const wrapperWidth = Math.min(600, window.innerWidth * 0.93);
+  const cellSize = Math.floor(wrapperWidth / mazeWidth);
+
+  mazeEl.style.gridTemplateColumns = `repeat(${mazeWidth}, ${cellSize}px)`;
+  mazeEl.style.gridTemplateRows = `repeat(${mazeHeight}, ${cellSize}px)`;
+  mazeEl.innerHTML = '';
+
+  // Adjust emoji size based on cell size
+  const emojiSize = Math.max(0.7, cellSize / 30);
+
+  for (let y = 0; y < mazeHeight; y++) {
+    for (let x = 0; x < mazeWidth; x++) {
+      const cell = document.createElement('div');
+      cell.className = 'maze-cell';
+      cell.id = `cell-${x}-${y}`;
+      cell.style.width = cellSize + 'px';
+      cell.style.height = cellSize + 'px';
+
+      const ch = grid[y][x];
+
+      if (ch === 'W') {
+        cell.classList.add('wall');
+      } else {
+        cell.classList.add('path');
+        if (visited[y][x]) cell.classList.add('path-visited');
+
+        if (x === playerX && y === playerY) {
+          cell.classList.add('player');
+          cell.innerHTML = `<span class="cell-emoji" style="font-size:${emojiSize}em">🥷</span>`;
+        } else if (ch === 'S') {
+          cell.classList.add('star-cell');
+          cell.innerHTML = `<span class="cell-emoji" style="font-size:${emojiSize}em">⭐</span>`;
+        } else if (ch === 'E') {
+          const allCollected = starsCollected >= LEVELS[currentLevel].starCount;
+          cell.classList.add('exit-cell');
+          cell.classList.add(allCollected ? 'exit-unlocked' : 'exit-locked');
+          cell.innerHTML = `<span class="cell-emoji" style="font-size:${emojiSize}em">${allCollected ? '🚪' : '🔒'}</span>`;
+        }
+      }
+
+      mazeEl.appendChild(cell);
+    }
+  }
+}
+
+function updateHUD() {
+  document.getElementById('level').textContent = currentLevel + 1;
+  document.getElementById('stars').textContent = `${starsCollected}/${LEVELS[currentLevel].starCount}`;
+  document.getElementById('moves').textContent = moveCount;
+
+  const mins = Math.floor(timerSeconds / 60);
+  const secs = timerSeconds % 60;
+  document.getElementById('timer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function movePlayer(dx, dy) {
+  if (!gameRunning) return;
+
+  const newX = playerX + dx;
+  const newY = playerY + dy;
+
+  // Bounds check
+  if (newX < 0 || newX >= mazeWidth || newY < 0 || newY >= mazeHeight) return;
+
+  // Wall check
+  if (grid[newY][newX] === 'W') return;
+
+  // Move the player
+  playerX = newX;
+  playerY = newY;
+  visited[newY][newX] = true;
+  moveCount++;
+
+  // Check for star
+  if (grid[newY][newX] === 'S') {
+    grid[newY][newX] = 'P';
+    starsCollected++;
+    totalStarsCollected++;
+    // Collect animation
+    showCollectEffect(newX, newY);
+  }
+
+  // Check for exit
+  if (grid[newY][newX] === 'E') {
+    if (starsCollected >= LEVELS[currentLevel].starCount) {
+      // Level complete!
+      totalMoves += moveCount;
+      if (currentLevel < LEVELS.length - 1) {
+        nextLevel();
+      } else {
+        winGame();
+      }
+      return;
+    }
+  }
+
+  updateHUD();
+  renderMaze();
+}
+
+function showCollectEffect(x, y) {
+  const cellEl = document.getElementById(`cell-${x}-${y}`);
+  if (!cellEl) return;
+  const effect = document.createElement('div');
+  effect.className = 'collect-effect';
+  effect.textContent = '⭐';
+  cellEl.appendChild(effect);
+  setTimeout(() => effect.remove(), 500);
+}
+
+function showLevelBanner(text) {
+  const wrapper = document.getElementById('maze-wrapper');
+  const banner = document.createElement('div');
+  banner.className = 'level-banner';
+  banner.textContent = text;
+  wrapper.appendChild(banner);
+  setTimeout(() => banner.remove(), 2000);
+}
+
+function nextLevel() {
+  currentLevel++;
+  parseLevel(LEVELS[currentLevel]);
+  renderMaze();
+  updateHUD();
+  showLevelBanner(`Level ${currentLevel + 1}!`);
+}
+
+function winGame() {
+  gameRunning = false;
+  clearInterval(timerInterval);
+
+  totalMoves += moveCount;
+  const totalStars = LEVELS.reduce((s, l) => s + l.starCount, 0);
+
+  const mins = Math.floor(timerSeconds / 60);
+  const secs = timerSeconds % 60;
+
+  document.getElementById('win-time').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+  document.getElementById('win-moves').textContent = totalMoves;
+  document.getElementById('win-stars').textContent = `${totalStarsCollected}/${totalStars}`;
+
+  let rating;
+  if (timerSeconds < 60 && totalMoves < 150) rating = '⭐⭐⭐';
+  else if (timerSeconds < 120 && totalMoves < 250) rating = '⭐⭐';
+  else rating = '⭐';
+
+  document.getElementById('win-rating').textContent = rating;
+  document.getElementById('win-overlay').style.display = 'flex';
+}
+
+function startGame() {
+  document.getElementById('start-overlay').style.display = 'none';
+  document.getElementById('win-overlay').style.display = 'none';
+
+  currentLevel = 0;
+  totalStarsCollected = 0;
+  totalMoves = 0;
+  timerSeconds = 0;
+
+  parseLevel(LEVELS[currentLevel]);
+  visited[playerY][playerX] = true;
+  renderMaze();
+  updateHUD();
+
+  gameRunning = true;
+
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (gameRunning) {
+      timerSeconds++;
+      updateHUD();
+    }
+  }, 1000);
+
+  showLevelBanner('Level 1!');
+}
+
+// Keyboard controls
+document.addEventListener('keydown', (e) => {
+  switch (e.key) {
+    case 'ArrowUp':    case 'w': case 'W': movePlayer(0, -1); e.preventDefault(); break;
+    case 'ArrowDown':  case 's': case 'S': movePlayer(0, 1);  e.preventDefault(); break;
+    case 'ArrowLeft':  case 'a': case 'A': movePlayer(-1, 0); e.preventDefault(); break;
+    case 'ArrowRight': case 'd': case 'D': movePlayer(1, 0);  e.preventDefault(); break;
+  }
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+  if (gameRunning) renderMaze();
+});
+
+// Initial render
+parseLevel(LEVELS[0]);
+renderMaze();
+updateHUD();
+</script>
+</body>
+</html>

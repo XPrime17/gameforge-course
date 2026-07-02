@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ninja Academy Quest - Builder Adventure</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: linear-gradient(135deg, #1E293B, #0F172A);
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: #E2E8F0;
+  }
+
+  .game-container {
+    background: #1E293B;
+    border: 2px solid #3B82F6;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 750px;
+    width: 100%;
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+  }
+
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 10px 15px;
+    background: #0F172A;
+    border-radius: 10px;
+    border: 1px solid #334155;
+  }
+
+  .score { font-size: 18px; color: #F59E0B; font-weight: 700; }
+  .chapter { font-size: 14px; color: #94A3B8; }
+
+  .tier-badge {
+    display: inline-block;
+    background: #1E3A5F;
+    color: #3B82F6;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .scene-art {
+    font-size: 50px;
+    text-align: center;
+    margin: 15px 0;
+    padding: 15px;
+    background: #0F172A;
+    border-radius: 12px;
+  }
+
+  h2 {
+    font-size: 24px;
+    color: #3B82F6;
+    margin-bottom: 8px;
+  }
+
+  .story-text {
+    font-size: 17px;
+    line-height: 1.7;
+    color: #CBD5E1;
+    margin-bottom: 25px;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .choice-btn {
+    background: #334155;
+    color: #E2E8F0;
+    border: 2px solid #475569;
+    padding: 14px 20px;
+    font-size: 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .choice-btn:hover {
+    background: #3B82F6;
+    border-color: #60A5FA;
+    transform: translateX(8px);
+  }
+
+  .ending-box {
+    background: linear-gradient(135deg, #1E3A5F, #0F172A);
+    border: 2px solid #3B82F6;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    margin: 15px 0;
+  }
+
+  .ending-box h3 {
+    font-size: 22px;
+    color: #F59E0B;
+    margin-bottom: 10px;
+  }
+
+  .ending-box p {
+    font-size: 16px;
+    color: #94A3B8;
+    margin-bottom: 5px;
+  }
+
+  .final-score {
+    font-size: 28px;
+    color: #10B981;
+    font-weight: 700;
+    margin: 10px 0;
+  }
+
+  .restart-btn {
+    background: #3B82F6;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-family: inherit;
+    font-weight: 600;
+  }
+
+  .restart-btn:hover { background: #2563EB; }
+
+  .score-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 40px;
+    color: #F59E0B;
+    font-weight: 900;
+    pointer-events: none;
+    animation: popUp 0.8s ease-out forwards;
+    z-index: 100;
+  }
+
+  @keyframes popUp {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+    50% { transform: translate(-50%, -70%) scale(1.3); }
+    100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<div class="game-container">
+  <div class="hud">
+    <div class="tier-badge">🔵 BUILDER</div>
+    <div class="chapter" id="chapter">Chapter 1 of 3</div>
+    <div class="score">Score: <span id="score">0</span></div>
+  </div>
+
+  <div class="scene-art" id="sceneArt">🏯</div>
+  <h2 id="sceneTitle">The Ninja Academy</h2>
+  <div class="story-text" id="story">
+    You arrive at the Ninja Academy on your first day. The gates are massive, carved with ancient symbols.
+    The headmaster gives you a choice of three training paths.
+  </div>
+  <div class="choices" id="choices"></div>
+</div>
+
+<script>
+let score = 0;
+let chapter = 1;
+
+const scenes = {
+  start: {
+    art: "🏯", title: "The Ninja Academy",
+    text: "You arrive at the Ninja Academy on your first day. The gates are massive, carved with ancient symbols. The headmaster gives you a choice of three training paths.",
+    chapter: 1,
+    choices: [
+      { text: "⚔️ Shadow Path — Learn stealth and speed", next: "shadow", points: 10 },
+      { text: "🔥 Fire Path — Master combat and power", next: "fire", points: 10 },
+      { text: "🌊 Water Path — Study wisdom and strategy", next: "water", points: 10 }
+    ]
+  },
+  shadow: {
+    art: "🌑", title: "The Shadow Dojo",
+    text: "You enter a pitch-black room. Your instructor appears behind you without a sound. 'To master shadows, you must first master silence.' She sets a challenge: cross the room without making a sound, or solve the riddle of the shadow scroll.",
+    chapter: 2,
+    choices: [
+      { text: "🤫 Cross the room silently", next: "shadow_sneak", points: 20 },
+      { text: "📜 Solve the shadow riddle", next: "shadow_riddle", points: 15 }
+    ]
+  },
+  fire: {
+    art: "🔥", title: "The Fire Arena",
+    text: "The arena is blazing hot. Your instructor throws a fireball at you! 'React! Will you dodge or deflect?' The flames crackle around you — there's no time to think!",
+    chapter: 2,
+    choices: [
+      { text: "💨 Dodge the fireball!", next: "fire_dodge", points: 20 },
+      { text: "🛡️ Deflect it back!", next: "fire_deflect", points: 25 }
+    ]
+  },
+  water: {
+    art: "🌊", title: "The Water Garden",
+    text: "A peaceful garden with a koi pond. Your instructor sits meditating. 'A true ninja wins without fighting. A rival student challenges you to a duel. What do you do?'",
+    chapter: 2,
+    choices: [
+      { text: "🤝 Challenge them to a strategy game instead", next: "water_strategy", points: 25 },
+      { text: "🏃 Accept but use defensive moves only", next: "water_defend", points: 15 }
+    ]
+  },
+  shadow_sneak: {
+    art: "🥷", title: "Shadow Master!",
+    text: "You glide across the room like a ghost. Not a single sound. Your instructor smiles — you're a natural.",
+    chapter: 3,
+    ending: "🏆 Shadow Master — You graduated top of the Shadow class!",
+    bonus: 30
+  },
+  shadow_riddle: {
+    art: "📜", title: "Riddle Solver!",
+    text: "'What has no weight, can be seen but not touched, and disappears in darkness?' You answer: 'A shadow itself.' Your instructor nods with respect.",
+    chapter: 3,
+    ending: "🧠 Scholar Ninja — Wisdom is your greatest weapon!",
+    bonus: 25
+  },
+  fire_dodge: {
+    art: "💨", title: "Speed Demon!",
+    text: "You dodge with incredible speed! The fireball scorches the wall behind you. Your reflexes are unmatched.",
+    chapter: 3,
+    ending: "⚡ Speed Ninja — Nothing can touch you!",
+    bonus: 20
+  },
+  fire_deflect: {
+    art: "🔥", title: "Fire Bender!",
+    text: "You catch the fireball and throw it back! Your instructor's eyes go wide — no student has ever done that before!",
+    chapter: 3,
+    ending: "🔥 Fire Master — You turned their power against them!",
+    bonus: 35
+  },
+  water_strategy: {
+    art: "♟️", title: "Strategic Genius!",
+    text: "You challenge the rival to a game of ninja chess. You win in 12 moves. The rival bows with respect — and becomes your ally.",
+    chapter: 3,
+    ending: "🧠 Grand Strategist — You win battles before they start!",
+    bonus: 30
+  },
+  water_defend: {
+    art: "🛡️", title: "Unbreakable!",
+    text: "The rival attacks again and again, but you deflect every strike without attacking once. They exhaust themselves. You win without throwing a single punch.",
+    chapter: 3,
+    ending: "🌊 Water Master — The greatest victory is one without violence!",
+    bonus: 25
+  }
+};
+
+function showPopup(text) {
+  const popup = document.createElement("div");
+  popup.className = "score-popup";
+  popup.textContent = text;
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 800);
+}
+
+function goTo(sceneId) {
+  const scene = scenes[sceneId];
+  document.getElementById("sceneArt").textContent = scene.art;
+  document.getElementById("sceneTitle").textContent = scene.title;
+  document.getElementById("story").textContent = scene.text;
+  document.getElementById("chapter").textContent = `Chapter ${scene.chapter} of 3`;
+
+  const choicesDiv = document.getElementById("choices");
+  choicesDiv.innerHTML = "";
+
+  if (scene.ending) {
+    score += (scene.bonus || 0);
+    document.getElementById("score").textContent = score;
+    showPopup(`+${scene.bonus}!`);
+
+    const endBox = document.createElement("div");
+    endBox.className = "ending-box";
+    endBox.innerHTML = `
+      <h3>${scene.ending}</h3>
+      <p>Your ninja journey is complete!</p>
+      <div class="final-score">Final Score: ${score}</div>
+      <p>Can you get a higher score with a different path?</p>
+    `;
+    choicesDiv.appendChild(endBox);
+
+    const btn = document.createElement("button");
+    btn.className = "restart-btn";
+    btn.textContent = "🔄 Try a Different Path";
+    btn.onclick = () => { score = 0; location.reload(); };
+    choicesDiv.appendChild(btn);
+  } else {
+    scene.choices.forEach(choice => {
+      const btn = document.createElement("button");
+      btn.className = "choice-btn";
+      btn.textContent = choice.text;
+      btn.onclick = () => {
+        score += choice.points;
+        document.getElementById("score").textContent = score;
+        showPopup(`+${choice.points}`);
+        goTo(choice.next);
+      };
+      choicesDiv.appendChild(btn);
+    });
+  }
+}
+
+// Initialize
+goTo("start");
+</script>
+</body>
+</html>

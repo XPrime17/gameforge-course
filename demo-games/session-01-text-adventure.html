@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shadow Dojo - A Ninja Text Adventure</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @keyframes glow {
+    0%, 100% { text-shadow: 0 0 10px #7C3AED, 0 0 20px #7C3AED, 0 0 40px #7C3AED; }
+    50% { text-shadow: 0 0 20px #10B981, 0 0 40px #10B981, 0 0 60px #10B981; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  body {
+    background: #1A1A2E;
+    color: #E0E0E0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  .stars {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle var(--duration) infinite;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+    width: 95%;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  header {
+    text-align: center;
+    padding: 30px 0 20px;
+  }
+
+  h1 {
+    font-size: 2.5em;
+    animation: glow 3s ease-in-out infinite;
+    margin-bottom: 5px;
+    letter-spacing: 2px;
+  }
+
+  .subtitle {
+    color: #7C3AED;
+    font-size: 0.95em;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(16,185,129,0.15));
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 12px;
+    padding: 12px 20px;
+    margin: 15px 0;
+    font-size: 0.9em;
+  }
+
+  .score-display {
+    color: #F59E0B;
+    font-weight: bold;
+    font-size: 1.1em;
+  }
+
+  .path-display {
+    color: #10B981;
+    font-size: 0.85em;
+  }
+
+  .game-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .story-panel {
+    background: linear-gradient(145deg, rgba(30,30,60,0.9), rgba(20,20,40,0.95));
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 20px;
+    animation: fadeIn 0.6s ease-out;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(124,58,237,0.1);
+  }
+
+  .scene-emoji {
+    font-size: 3em;
+    text-align: center;
+    margin-bottom: 15px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .story-text {
+    font-size: 1.1em;
+    line-height: 1.8;
+    color: #D0D0E8;
+    margin-bottom: 10px;
+  }
+
+  .story-text em {
+    color: #10B981;
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .choice-btn {
+    background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.05));
+    border: 1px solid rgba(124,58,237,0.4);
+    color: #E0E0E0;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-size: 1em;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .choice-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(124,58,237,0.1), transparent);
+    transition: left 0.5s ease;
+  }
+
+  .choice-btn:hover {
+    border-color: #7C3AED;
+    background: linear-gradient(135deg, rgba(124,58,237,0.35), rgba(124,58,237,0.15));
+    transform: translateX(5px);
+    box-shadow: 0 4px 20px rgba(124,58,237,0.3);
+  }
+
+  .choice-btn:hover::before {
+    left: 100%;
+  }
+
+  .choice-btn:active {
+    transform: translateX(5px) scale(0.98);
+  }
+
+  .ending-panel {
+    text-align: center;
+    padding: 40px 30px;
+  }
+
+  .ending-emoji {
+    font-size: 4em;
+    margin-bottom: 15px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .ending-title {
+    font-size: 1.8em;
+    margin-bottom: 10px;
+    background: linear-gradient(90deg, #7C3AED, #10B981, #EC4899, #7C3AED);
+    background-size: 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
+  }
+
+  .ending-good { border-color: rgba(16,185,129,0.5); }
+  .ending-bad { border-color: rgba(236,72,153,0.5); }
+  .ending-secret { border-color: rgba(245,158,11,0.5); }
+
+  .ending-score {
+    font-size: 1.3em;
+    color: #F59E0B;
+    margin: 15px 0;
+  }
+
+  .restart-btn {
+    background: linear-gradient(135deg, #7C3AED, #6D28D9);
+    border: none;
+    color: white;
+    padding: 14px 40px;
+    border-radius: 30px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+    box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+  }
+
+  .restart-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(124,58,237,0.6);
+    background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+  }
+
+  .restart-btn:active {
+    transform: translateY(0);
+  }
+
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: #555;
+    font-size: 0.8em;
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="container">
+  <header>
+    <h1>Shadow Dojo</h1>
+    <div class="subtitle">A Ninja Text Adventure</div>
+  </header>
+
+  <div class="status-bar">
+    <div class="score-display" id="score-display">Score: 0</div>
+    <div class="path-display" id="path-display">Path: Start</div>
+  </div>
+
+  <div class="game-area" id="game-area"></div>
+
+  <footer>Session 01 Demo - Vibe Coding Games Course</footer>
+</div>
+
+<script>
+const SCENES = {
+  start: {
+    emoji: "🏯",
+    text: `You stand before the gates of the <em>Shadow Dojo</em>, an ancient training ground hidden deep in the mountains. The gates creak open on their own. A cold mist spills from inside.\n\nA scroll pinned to the gate reads: <em>"Only the worthy may claim the Shadow Scroll."</em>\n\nThe courtyard splits into three paths.`,
+    choices: [
+      { text: "🚪 Enter through the main gate boldly", next: "main_hall", score: 5 },
+      { text: "🌿 Sneak through the garden entrance", next: "garden", score: 10 },
+      { text: "🧗 Climb the wall and enter from the roof", next: "roof", score: 15 }
+    ]
+  },
+
+  main_hall: {
+    emoji: "⛩️",
+    text: `You stride into the <em>Main Hall</em>. Torches line the walls, casting dancing shadows. In the center, a stone pedestal holds a glowing orb.\n\nA spectral sensei appears: <em>"Brave, but foolish. Bravery alone won't earn the scroll."</em>\n\nHe gestures to two doors.`,
+    choices: [
+      { text: "⚔️ Challenge the sensei to a duel", next: "duel_sensei", score: 10 },
+      { text: "🚪 Take the left door (marked with a flame)", next: "fire_room", score: 5 },
+      { text: "🚪 Take the right door (marked with water)", next: "water_room", score: 5 }
+    ]
+  },
+
+  garden: {
+    emoji: "🌸",
+    text: `You slip through the <em>Moonlit Garden</em>. Cherry blossoms fall like pink snow. A koi pond glimmers in the center. You notice something shining at the bottom of the pond.\n\nA stone lantern nearby has an inscription: <em>"Patience reveals what haste conceals."</em>`,
+    choices: [
+      { text: "🏊 Dive into the koi pond", next: "pond_dive", score: 10 },
+      { text: "🧘 Sit and meditate by the lantern", next: "meditate", score: 20 },
+      { text: "🏃 Rush through to the inner dojo", next: "trap_hallway", score: 0 }
+    ]
+  },
+
+  roof: {
+    emoji: "🌙",
+    text: `From the <em>rooftop</em>, you see the entire dojo complex below. The moon illuminates a hidden courtyard you wouldn't have seen from ground level. You also spot a mysterious figure on a distant tower.\n\nA raven lands beside you, carrying a small key in its beak.`,
+    choices: [
+      { text: "🔑 Take the key from the raven", next: "raven_key", score: 15 },
+      { text: "🏃 Leap to the hidden courtyard", next: "hidden_courtyard", score: 10 },
+      { text: "👤 Signal the mysterious figure", next: "shadow_master", score: 20 }
+    ]
+  },
+
+  duel_sensei: {
+    emoji: "⚔️",
+    text: `You draw your blade and face the spectral sensei. He moves like smoke. Your attacks pass through him!\n\n<em>"You cannot defeat what has no form,"</em> he laughs.\n\nBut you notice his shadow on the wall is solid...`,
+    choices: [
+      { text: "🗡️ Strike his shadow!", next: "ending_clever_warrior", score: 25 },
+      { text: "🏃 Retreat through the flame door", next: "fire_room", score: 0 }
+    ]
+  },
+
+  fire_room: {
+    emoji: "🔥",
+    text: `The <em>Fire Chamber</em> blazes with eternal flames. The floor is a narrow stone path over a pit of fire. At the far end, you see a chest.\n\nThe flames seem to pulse with a rhythm, almost like breathing.`,
+    choices: [
+      { text: "🏃 Sprint across during the calm pulses", next: "ending_burned", score: 0 },
+      { text: "🧘 Match your breathing to the flames and walk slowly", next: "ending_fire_master", score: 20 }
+    ]
+  },
+
+  water_room: {
+    emoji: "💧",
+    text: `The <em>Water Chamber</em> is flooded knee-deep. The ceiling drips constantly. In the center, a pedestal holds a scroll encased in ice.\n\nThe water is rising slowly.`,
+    choices: [
+      { text: "💪 Try to break the ice with your fist", next: "ending_frozen", score: 0 },
+      { text: "🌊 Let the rising water melt the ice naturally", next: "ending_patience", score: 20 }
+    ]
+  },
+
+  pond_dive: {
+    emoji: "🐟",
+    text: `You dive in! The koi scatter. At the bottom, you find a <em>golden shuriken</em> embedded in the mud. As you grab it, the water begins to glow.\n\nA voice echoes: <em>"The golden star opens the final gate."</em>`,
+    choices: [
+      { text: "⭐ Take the shuriken to the inner dojo", next: "ending_golden_path", score: 25 },
+      { text: "🏊 Dive deeper — there might be more", next: "ending_drowned", score: 0 }
+    ]
+  },
+
+  meditate: {
+    emoji: "🧘",
+    text: `You sit cross-legged by the lantern. Minutes pass. Hours. The world fades.\n\nWhen you open your eyes, the garden has transformed. The cherry blossoms hover in midair. A spectral fox sits before you.\n\n<em>"You have the patience of a true ninja,"</em> the fox says. <em>"I will show you the secret path."</em>`,
+    choices: [
+      { text: "🦊 Follow the spectral fox", next: "ending_secret_path", score: 30 }
+    ]
+  },
+
+  trap_hallway: {
+    emoji: "💀",
+    text: `You rush forward and the floor drops! Darts fly from the walls! You dodge left, right, duck under a swinging blade...\n\nBut the hallway keeps going. And the traps keep coming.`,
+    choices: [
+      { text: "🏃 Keep running!", next: "ending_trapped", score: 0 },
+      { text: "🛑 Stop and look for a hidden switch", next: "ending_escape_artist", score: 15 }
+    ]
+  },
+
+  raven_key: {
+    emoji: "🗝️",
+    text: `The raven drops the <em>obsidian key</em> into your palm and caws three times. Below, you notice a locked door you hadn't seen before — hidden behind a waterfall.\n\nThe key pulses with a faint purple glow.`,
+    choices: [
+      { text: "🚪 Use the key on the hidden door", next: "ending_raven_master", score: 30 },
+      { text: "🏃 Ignore it and head to the main hall", next: "main_hall", score: 5 }
+    ]
+  },
+
+  hidden_courtyard: {
+    emoji: "🏯",
+    text: `You leap down into the <em>Hidden Courtyard</em>. Training dummies stand in formation. In the center, a weapon rack holds a single katana that glows faintly.\n\nA plaque reads: <em>"Take the blade, face the trial."</em>`,
+    choices: [
+      { text: "🗡️ Take the glowing katana", next: "ending_blade_trial", score: 20 },
+      { text: "👐 Leave the blade and bow respectfully", next: "ending_humble_ninja", score: 25 }
+    ]
+  },
+
+  shadow_master: {
+    emoji: "👤",
+    text: `The distant figure notices your signal and vanishes — then reappears right behind you!\n\n<em>"Interesting. You saw me when no one else ever has."</em>\n\nIt's the <em>Shadow Master</em>, founder of the dojo. He studies you carefully.`,
+    choices: [
+      { text: "🙇 Bow and ask to be trained", next: "ending_shadow_apprentice", score: 35 },
+      { text: "⚔️ Demand the Shadow Scroll", next: "ending_arrogant", score: 0 }
+    ]
+  },
+
+  // === ENDINGS ===
+  ending_clever_warrior: {
+    emoji: "⚔️✨",
+    type: "good",
+    title: "The Clever Warrior",
+    text: `Your blade strikes the shadow and the sensei shatters like glass! Behind where he stood, the <em>Shadow Scroll</em> materializes.\n\nYou solved what brute force could not. <em>Intelligence beats strength.</em>`,
+    finalScore: 25
+  },
+
+  ending_fire_master: {
+    emoji: "🔥🧘",
+    type: "good",
+    title: "Master of Flames",
+    text: `You walk through the flames untouched, breathing in perfect sync. The chest opens to reveal the <em>Shadow Scroll</em>.\n\n<em>"The fire tests not your speed, but your calm."</em>`,
+    finalScore: 20
+  },
+
+  ending_patience: {
+    emoji: "💧📜",
+    type: "good",
+    title: "The Patient One",
+    text: `The water rises, the ice melts, and the scroll floats gently into your hands. The water recedes.\n\n<em>"Water shapes stone not by force, but by persistence."</em> You have earned the <em>Shadow Scroll</em>.`,
+    finalScore: 20
+  },
+
+  ending_golden_path: {
+    emoji: "⭐🏆",
+    type: "good",
+    title: "The Golden Path",
+    text: `The golden shuriken fits perfectly into a slot on the inner dojo door. It swings open to reveal the <em>Shadow Scroll</em> on a golden pedestal.\n\n<em>"You followed the light through the dark."</em> A true ninja's path.`,
+    finalScore: 25
+  },
+
+  ending_secret_path: {
+    emoji: "🦊🌟",
+    type: "secret",
+    title: "SECRET ENDING: The Fox's Chosen",
+    text: `The spectral fox leads you through walls, through time itself. You emerge in a chamber that doesn't exist in normal space.\n\nHere lies not just the Shadow Scroll, but the <em>Master's Legacy</em> — the complete teachings of every ninja who ever trained here.\n\n<em>"Patience opened the door that no key could."</em>`,
+    finalScore: 30
+  },
+
+  ending_raven_master: {
+    emoji: "🗝️🏆",
+    type: "secret",
+    title: "SECRET ENDING: The Raven's Key",
+    text: `The hidden door opens to a spiral staircase descending deep underground. At the bottom: an ancient library filled with scrolls.\n\nThe raven perches on your shoulder. <em>"You earned the trust of the dojo's guardian,"</em> a voice whispers. The <em>Shadow Scroll</em> glows brightest here.\n\nYou've found the dojo's true heart.`,
+    finalScore: 30
+  },
+
+  ending_shadow_apprentice: {
+    emoji: "👤🥷",
+    type: "secret",
+    title: "SECRET ENDING: Shadow Apprentice",
+    text: `The Shadow Master smiles — a rare thing.\n\n<em>"In 500 years, only three have seen me. None have bowed."</em>\n\nHe doesn't give you the scroll. He gives you something better: <em>his knowledge</em>. You become the next Shadow Master.\n\nThe highest honor the dojo has ever given.`,
+    finalScore: 35
+  },
+
+  ending_blade_trial: {
+    emoji: "🗡️⚡",
+    type: "good",
+    title: "Blade of Trials",
+    text: `The katana hums in your grip. Spectral warriors appear! You fight wave after wave, each harder than the last.\n\nWhen the last one falls, the katana transforms into the <em>Shadow Scroll</em>.\n\n<em>"Courage is not the absence of fear. It is fighting despite it."</em>`,
+    finalScore: 20
+  },
+
+  ending_humble_ninja: {
+    emoji: "🙇✨",
+    type: "good",
+    title: "The Humble Ninja",
+    text: `You bow before the blade and step back. The training dummies come alive and bow back!\n\nThe katana rises on its own and transforms into the <em>Shadow Scroll</em>, floating into your hands.\n\n<em>"True strength is knowing when NOT to use it."</em>`,
+    finalScore: 25
+  },
+
+  ending_burned: {
+    emoji: "🔥💀",
+    type: "bad",
+    title: "Consumed by Haste",
+    text: `You sprint and the flames roar! The rhythm was a warning, not a guide. The fire engulfs the path.\n\nYou barely escape, singed and scrolless.\n\n<em>"Haste makes waste... and burns."</em> The dojo doors seal behind you.`,
+    finalScore: 0
+  },
+
+  ending_frozen: {
+    emoji: "🥶💀",
+    type: "bad",
+    title: "Frozen Folly",
+    text: `Your fist strikes the ice and a cold shock runs through your body! The ice spreads up your arm, freezing you in place.\n\nYou become another statue in the Water Chamber's collection.\n\n<em>"Force shatters the foolish before it shatters ice."</em>`,
+    finalScore: 0
+  },
+
+  ending_drowned: {
+    emoji: "🌊💀",
+    type: "bad",
+    title: "Too Deep",
+    text: `You dive deeper into the pond. It's deeper than it looks. MUCH deeper. The light fades above you.\n\nThe koi circle around you as the world goes dark.\n\n<em>"Greed pulls you under when wisdom would lift you up."</em>`,
+    finalScore: 0
+  },
+
+  ending_trapped: {
+    emoji: "💀⚠️",
+    type: "bad",
+    title: "Trapped Forever",
+    text: `You run and run but the hallway never ends. The traps get faster. Eventually, exhaustion takes you.\n\nYou're found days later, tangled in ropes and covered in paint darts.\n\n<em>"Running from problems only leads to more problems."</em>`,
+    finalScore: 0
+  },
+
+  ending_escape_artist: {
+    emoji: "🔧🥷",
+    type: "good",
+    title: "The Escape Artist",
+    text: `You stop, breathe, and spot a loose brick. Behind it: a lever! The traps deactivate and a hidden passage opens.\n\nInside, the <em>Shadow Scroll</em> awaits.\n\n<em>"A ninja's greatest weapon is observation."</em>`,
+    finalScore: 15
+  },
+
+  ending_arrogant: {
+    emoji: "💀😤",
+    type: "bad",
+    title: "Pride Before the Fall",
+    text: `The Shadow Master's expression hardens.\n\n<em>"You DEMAND from the one who built this place?"</em>\n\nHe flicks his wrist. You wake up outside the dojo gates. They're sealed. Forever.\n\n<em>"Arrogance is the enemy of growth."</em>`,
+    finalScore: 0
+  }
+};
+
+// Game State
+let score = 0;
+let path = [];
+let currentScene = 'start';
+
+function createStars() {
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    star.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
+    star.style.animationDelay = Math.random() * 3 + 's';
+    container.appendChild(star);
+  }
+}
+
+function updateStatus() {
+  document.getElementById('score-display').textContent = `Score: ${score}`;
+  document.getElementById('path-display').textContent = `Path: ${path.join(' > ') || 'Start'}`;
+}
+
+function renderScene(sceneId) {
+  const scene = SCENES[sceneId];
+  if (!scene) return;
+
+  currentScene = sceneId;
+  const area = document.getElementById('game-area');
+
+  // Check if it's an ending
+  if (scene.type) {
+    score += (scene.finalScore || 0);
+    updateStatus();
+
+    const endingClass = scene.type === 'good' ? 'ending-good' :
+                        scene.type === 'bad' ? 'ending-bad' : 'ending-secret';
+
+    area.innerHTML = `
+      <div class="story-panel ending-panel ${endingClass}">
+        <div class="ending-emoji">${scene.emoji}</div>
+        <div class="ending-title">${scene.title}</div>
+        <div class="story-text">${scene.text}</div>
+        <div class="ending-score">Final Score: ${score} points</div>
+        <div style="color:#888;margin:8px 0;font-size:0.9em;">
+          ${score >= 50 ? '🌟 LEGENDARY NINJA!' : score >= 30 ? '⭐ Skilled Warrior' : score >= 15 ? '🥋 Promising Student' : '💤 Better luck next time...'}
+        </div>
+        <button class="restart-btn" onclick="restartGame()">🔄 Play Again</button>
+        <div style="color:#666;margin-top:12px;font-size:0.8em;">
+          Tip: There are 3 secret endings! Can you find them all?
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Regular scene
+  let choicesHTML = scene.choices.map((c, i) => {
+    return `<button class="choice-btn" onclick="makeChoice('${c.next}', ${c.score}, '${c.text.replace(/'/g, "\\'")}')" style="animation: fadeIn ${0.4 + i * 0.15}s ease-out">${c.text}</button>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="story-panel">
+      <div class="scene-emoji">${scene.emoji}</div>
+      <div class="story-text">${scene.text.replace(/\n/g, '<br>')}</div>
+      <div class="choices">${choicesHTML}</div>
+    </div>
+  `;
+}
+
+function makeChoice(nextScene, points, choiceText) {
+  score += points;
+  // Extract just the text without emoji for path
+  const cleanText = choiceText.replace(/^[^\s]+ /, '').substring(0, 20);
+  path.push(cleanText);
+  updateStatus();
+  renderScene(nextScene);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function restartGame() {
+  score = 0;
+  path = [];
+  currentScene = 'start';
+  updateStatus();
+  renderScene('start');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Initialize
+createStars();
+updateStatus();
+renderScene('start');
+</script>
+</body>
+</html>

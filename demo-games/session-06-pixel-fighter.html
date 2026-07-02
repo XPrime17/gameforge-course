@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Fighter! - Session 6</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @keyframes slideIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes slideInLeft { from { transform: translateX(-60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes slideInRight { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-80px) scale(1.5); opacity: 0; }
+  }
+  @keyframes flashWhite {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(3); }
+  }
+  @keyframes bounceIn {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes idleBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  @keyframes attackSlash {
+    0% { transform: translateX(0); }
+    30% { transform: translateX(60px); }
+    60% { transform: translateX(60px); }
+    100% { transform: translateX(0); }
+  }
+  @keyframes enemyHit {
+    0% { transform: translateX(0); }
+    30% { transform: translateX(-15px); }
+    60% { transform: translateX(10px); }
+    100% { transform: translateX(0); }
+  }
+  @keyframes blockShield {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.3); opacity: 1; }
+  }
+  @keyframes specialCharge {
+    0% { filter: drop-shadow(0 0 5px #F59E0B); }
+    50% { filter: drop-shadow(0 0 25px #F59E0B) drop-shadow(0 0 40px #EC4899); }
+    100% { filter: drop-shadow(0 0 5px #F59E0B); }
+  }
+
+  body {
+    background: #1A1A2E;
+    color: white;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    user-select: none;
+  }
+
+  #gameWrapper {
+    max-width: 800px;
+    width: 100%;
+  }
+
+  /* Battle Header */
+  .battle-header {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.5);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .battle-round {
+    color: #F59E0B;
+    font-weight: 800;
+  }
+
+  /* Arena */
+  #arena {
+    background: linear-gradient(180deg, #16213E 0%, #1A1A2E 40%, #0F3460 100%);
+    border: 2px solid rgba(124, 58, 237, 0.3);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    min-height: 320px;
+  }
+
+  #arena::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: linear-gradient(180deg, transparent, rgba(124, 58, 237, 0.1));
+    border-radius: 0 0 18px 18px;
+  }
+
+  /* Combatants */
+  .combatants {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .combatant {
+    text-align: center;
+    width: 45%;
+  }
+
+  .combatant-emoji {
+    font-size: 5rem;
+    display: block;
+    margin-bottom: 12px;
+    animation: idleBounce 2s ease-in-out infinite;
+    transition: filter 0.3s;
+  }
+
+  .combatant.attacking .combatant-emoji {
+    animation: attackSlash 0.6s ease-out;
+  }
+
+  .combatant.hit .combatant-emoji {
+    animation: enemyHit 0.4s ease-out;
+  }
+
+  .combatant.blocking .combatant-emoji {
+    animation: blockShield 0.6s ease-out;
+  }
+
+  .combatant.special .combatant-emoji {
+    animation: specialCharge 0.8s ease-out;
+  }
+
+  .combatant-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .player-side .combatant-name { color: #10B981; }
+  .enemy-side .combatant-name { color: #EC4899; }
+
+  /* Health Bar */
+  .health-bar-container {
+    width: 100%;
+    margin-bottom: 6px;
+  }
+
+  .health-bar-bg {
+    width: 100%;
+    height: 20px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+    position: relative;
+  }
+
+  .health-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.6s ease-out;
+    position: relative;
+  }
+
+  .player-side .health-bar-fill {
+    background: linear-gradient(90deg, #10B981, #059669);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+  }
+
+  .enemy-side .health-bar-fill {
+    background: linear-gradient(90deg, #EC4899, #DB2777);
+    box-shadow: 0 0 10px rgba(236, 72, 153, 0.4);
+  }
+
+  .health-bar-fill.low {
+    background: linear-gradient(90deg, #EF4444, #DC2626) !important;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5) !important;
+  }
+
+  .health-text {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    margin-top: 3px;
+  }
+
+  /* VS Badge */
+  .vs-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: 900;
+    color: #F59E0B;
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+    z-index: 3;
+  }
+
+  /* Stats Display */
+  .combatant-stats {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .stat { display: flex; align-items: center; gap: 3px; }
+  .stat-icon { font-size: 0.9rem; }
+
+  /* Damage Numbers */
+  .damage-number {
+    position: absolute;
+    font-size: 2rem;
+    font-weight: 900;
+    z-index: 10;
+    pointer-events: none;
+    animation: floatUp 1.2s ease-out forwards;
+  }
+
+  .damage-number.player-damage { color: #EF4444; left: 65%; }
+  .damage-number.enemy-damage { color: #10B981; left: 25%; }
+  .damage-number.heal { color: #10B981; }
+  .damage-number.blocked { color: #7C3AED; font-size: 1.4rem; }
+
+  /* Action Log */
+  #actionLog {
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid rgba(124, 58, 237, 0.15);
+    transition: all 0.3s ease;
+  }
+
+  /* Actions */
+  #actionsPanel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .action-btn {
+    padding: 16px 12px;
+    border: 2px solid rgba(124, 58, 237, 0.3);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(26, 26, 46, 0.9));
+    color: white;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+
+  .action-btn:hover:not(:disabled) {
+    border-color: #7C3AED;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(236, 72, 153, 0.1));
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.3);
+  }
+
+  .action-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .action-emoji { font-size: 1.8rem; display: block; margin-bottom: 4px; }
+  .action-name { display: block; font-size: 0.9rem; }
+  .action-desc { display: block; font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .action-cooldown { display: block; font-size: 0.7rem; color: #F59E0B; margin-top: 4px; font-weight: 800; }
+
+  /* Character Select */
+  #charSelect {
+    text-align: center;
+  }
+
+  .char-title {
+    font-size: 2rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #7C3AED, #EC4899, #F59E0B);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+
+  .char-subtitle {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 25px;
+  }
+
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .char-card {
+    padding: 24px 16px;
+    border: 2px solid rgba(124, 58, 237, 0.3);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(26, 26, 46, 0.95));
+    cursor: pointer;
+    transition: all 0.3s ease;
+    animation: slideIn 0.4s ease-out backwards;
+  }
+
+  .char-card:nth-child(1) { animation-delay: 0.1s; }
+  .char-card:nth-child(2) { animation-delay: 0.2s; }
+  .char-card:nth-child(3) { animation-delay: 0.3s; }
+
+  .char-card:hover {
+    border-color: #7C3AED;
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.3);
+  }
+
+  .char-emoji { font-size: 4rem; display: block; margin-bottom: 8px; }
+  .char-name { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; }
+  .char-type { font-size: 0.8rem; color: #EC4899; margin-bottom: 10px; }
+
+  .char-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: left;
+  }
+
+  .char-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+  }
+
+  .char-stat-bar {
+    width: 60%;
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .char-stat-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+
+  .char-stat-fill.hp { background: #10B981; }
+  .char-stat-fill.atk { background: #EC4899; }
+  .char-stat-fill.mag { background: #7C3AED; }
+  .char-stat-fill.def { background: #F59E0B; }
+
+  /* Item Shop */
+  #itemShop {
+    text-align: center;
+    animation: slideIn 0.5s ease-out;
+  }
+
+  .shop-title {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #F59E0B;
+    margin-bottom: 6px;
+  }
+
+  .shop-subtitle {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 20px;
+  }
+
+  .item-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    max-width: 400px;
+    margin: 0 auto 20px;
+  }
+
+  .item-card {
+    padding: 18px;
+    border: 2px solid rgba(245, 158, 11, 0.3);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(26, 26, 46, 0.95));
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .item-card:hover {
+    border-color: #F59E0B;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.2);
+  }
+
+  .item-emoji { font-size: 2.5rem; }
+  .item-name { font-size: 1rem; font-weight: 700; margin-top: 4px; }
+  .item-desc { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+  .skip-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.5);
+    padding: 10px 30px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .skip-btn:hover {
+    border-color: rgba(255,255,255,0.5);
+    color: white;
+  }
+
+  /* Victory / Defeat */
+  #endScreen {
+    text-align: center;
+    animation: slideIn 0.5s ease-out;
+  }
+
+  .end-title {
+    font-size: 3rem;
+    font-weight: 900;
+    margin-bottom: 10px;
+  }
+
+  .end-title.victory {
+    background: linear-gradient(135deg, #F59E0B, #10B981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .end-title.defeat {
+    background: linear-gradient(135deg, #EC4899, #EF4444);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .end-subtitle {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 20px;
+  }
+
+  .end-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 25px;
+  }
+
+  .end-stat {
+    padding: 12px 20px;
+    background: rgba(124, 58, 237, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    text-align: center;
+  }
+
+  .end-stat-num { font-size: 1.6rem; font-weight: 800; color: #7C3AED; }
+  .end-stat-label { font-size: 0.7rem; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+
+  .play-again-btn {
+    font-size: 1.2rem;
+    font-weight: 700;
+    padding: 14px 40px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #7C3AED, #EC4899);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+  }
+
+  .play-again-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 30px rgba(124, 58, 237, 0.6);
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 600px) {
+    .char-grid { grid-template-columns: 1fr; max-width: 280px; }
+    .combatant-emoji { font-size: 3.5rem; }
+    #actionsPanel { grid-template-columns: 1fr; }
+    .item-grid { grid-template-columns: 1fr; }
+    .end-stats { flex-direction: column; align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<div id="gameWrapper">
+  <!-- Character Select -->
+  <div id="charSelect">
+    <div style="font-size: 3.5rem; margin-bottom: 8px;">&#x2694;&#xFE0F;</div>
+    <div class="char-title">Pixel Fighter!</div>
+    <div class="char-subtitle">Session 6 - Choose Your Champion</div>
+    <div class="char-grid" id="charGrid"></div>
+  </div>
+
+  <!-- Battle Screen -->
+  <div id="battleScreen" class="hidden">
+    <div class="battle-header">
+      Battle <span class="battle-round" id="roundNum">1</span> of 3
+    </div>
+
+    <div id="arena">
+      <div class="combatants">
+        <div class="combatant player-side" id="playerCombatant">
+          <span class="combatant-emoji" id="playerEmoji"></span>
+          <div class="combatant-name" id="playerName"></div>
+          <div class="health-bar-container">
+            <div class="health-bar-bg">
+              <div class="health-bar-fill" id="playerHpBar" style="width: 100%"></div>
+            </div>
+          </div>
+          <div class="health-text"><span id="playerHpText">100</span> / <span id="playerMaxHpText">100</span> HP</div>
+          <div class="combatant-stats" id="playerStats"></div>
+        </div>
+
+        <div class="vs-badge">VS</div>
+
+        <div class="combatant enemy-side" id="enemyCombatant">
+          <span class="combatant-emoji" id="enemyEmoji"></span>
+          <div class="combatant-name" id="enemyName"></div>
+          <div class="health-bar-container">
+            <div class="health-bar-bg">
+              <div class="health-bar-fill" id="enemyHpBar" style="width: 100%"></div>
+            </div>
+          </div>
+          <div class="health-text"><span id="enemyHpText">100</span> / <span id="enemyMaxHpText">100</span> HP</div>
+          <div class="combatant-stats" id="enemyStats"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="actionLog">Choose your action!</div>
+
+    <div id="actionsPanel"></div>
+  </div>
+
+  <!-- Item Shop -->
+  <div id="itemShop" class="hidden"></div>
+
+  <!-- End Screen -->
+  <div id="endScreen" class="hidden"></div>
+</div>
+
+<script>
+(function() {
+  // Character definitions
+  const characters = [
+    {
+      name: 'Ninja', emoji: '\uD83E\uDD77', type: 'Balanced Fighter',
+      hp: 100, attack: 18, defense: 10, magic: 15,
+      special: { name: 'Shadow Strike', emoji: '\uD83C\uDF11', damage: 35, desc: 'Critical shadow hit', cooldown: 3 },
+    },
+    {
+      name: 'Wizard', emoji: '\uD83E\uDDD9', type: 'High Magic / Low HP',
+      hp: 75, attack: 10, defense: 8, magic: 25,
+      special: { name: 'Arcane Blast', emoji: '\u2728', damage: 45, desc: 'Devastating magic burst', cooldown: 3 },
+    },
+    {
+      name: 'Knight', emoji: '\uD83D\uDEE1\uFE0F', type: 'High HP / Low Attack',
+      hp: 140, attack: 14, defense: 18, magic: 6,
+      special: { name: 'Shield Bash', emoji: '\uD83D\uDCA5', damage: 28, desc: 'Stun + damage', cooldown: 3 },
+    },
+  ];
+
+  const enemies = [
+    {
+      name: 'Fire Dragon', emoji: '\uD83D\uDC09',
+      hp: 90, attack: 16, defense: 10, magic: 12,
+      special: { name: 'Fire Breath', damage: 30 },
+    },
+    {
+      name: 'Shadow Ghost', emoji: '\uD83D\uDC7B',
+      hp: 70, attack: 20, defense: 6, magic: 18,
+      special: { name: 'Soul Drain', damage: 25, heal: 10 },
+    },
+    {
+      name: 'Robot Boss', emoji: '\uD83E\uDD16',
+      hp: 130, attack: 22, defense: 14, magic: 14,
+      special: { name: 'Laser Beam', damage: 38 },
+    },
+  ];
+
+  const items = [
+    { name: 'Health Potion', emoji: '\u2764\uFE0F', desc: 'Restore 40 HP', effect: 'heal', value: 40 },
+    { name: 'Power Crystal', emoji: '\u26A1', desc: '+5 Attack permanently', effect: 'attack', value: 5 },
+    { name: 'Magic Shield', emoji: '\uD83D\uDD2E', desc: '+5 Defense permanently', effect: 'defense', value: 5 },
+    { name: 'Swift Boots', emoji: '\uD83D\uDC5F', desc: '+8 Attack permanently', effect: 'attack', value: 8 },
+  ];
+
+  // Game state
+  let player = null;
+  let currentEnemy = null;
+  let round = 0;
+  let specialCooldown = 0;
+  let isPlayerTurn = true;
+  let totalDamageDealt = 0;
+  let turnsPlayed = 0;
+  let enemiesDefeated = 0;
+  let actionLocked = false;
+
+  // DOM elements
+  const charSelectEl = document.getElementById('charSelect');
+  const battleScreenEl = document.getElementById('battleScreen');
+  const itemShopEl = document.getElementById('itemShop');
+  const endScreenEl = document.getElementById('endScreen');
+  const arenaEl = document.getElementById('arena');
+  const actionLogEl = document.getElementById('actionLog');
+  const actionsPanelEl = document.getElementById('actionsPanel');
+
+  function hideAll() {
+    charSelectEl.classList.add('hidden');
+    battleScreenEl.classList.add('hidden');
+    itemShopEl.classList.add('hidden');
+    endScreenEl.classList.add('hidden');
+  }
+
+  // Character Select
+  function showCharSelect() {
+    hideAll();
+    charSelectEl.classList.remove('hidden');
+
+    const grid = document.getElementById('charGrid');
+    grid.innerHTML = '';
+
+    characters.forEach((char, i) => {
+      const card = document.createElement('div');
+      card.className = 'char-card';
+      card.innerHTML = `
+        <span class="char-emoji">${char.emoji}</span>
+        <div class="char-name">${char.name}</div>
+        <div class="char-type">${char.type}</div>
+        <div class="char-stats">
+          <div class="char-stat-row">
+            <span>HP</span>
+            <div class="char-stat-bar"><div class="char-stat-fill hp" style="width:${char.hp / 1.4}%"></div></div>
+          </div>
+          <div class="char-stat-row">
+            <span>ATK</span>
+            <div class="char-stat-bar"><div class="char-stat-fill atk" style="width:${char.attack / 0.25}%"></div></div>
+          </div>
+          <div class="char-stat-row">
+            <span>MAG</span>
+            <div class="char-stat-bar"><div class="char-stat-fill mag" style="width:${char.magic / 0.25}%"></div></div>
+          </div>
+          <div class="char-stat-row">
+            <span>DEF</span>
+            <div class="char-stat-bar"><div class="char-stat-fill def" style="width:${char.defense / 0.18}%"></div></div>
+          </div>
+        </div>
+      `;
+      card.addEventListener('click', () => selectCharacter(i));
+      grid.appendChild(card);
+    });
+  }
+
+  function selectCharacter(index) {
+    const char = characters[index];
+    player = {
+      ...char,
+      maxHp: char.hp,
+      currentHp: char.hp,
+      baseAttack: char.attack,
+      baseDefense: char.defense,
+    };
+    round = 0;
+    totalDamageDealt = 0;
+    turnsPlayed = 0;
+    enemiesDefeated = 0;
+    startNextBattle();
+  }
+
+  function startNextBattle() {
+    if (round >= 3) {
+      showEndScreen(true);
+      return;
+    }
+
+    const enemy = enemies[round];
+    currentEnemy = {
+      ...enemy,
+      maxHp: enemy.hp,
+      currentHp: enemy.hp,
+    };
+    specialCooldown = 0;
+    isPlayerTurn = true;
+    actionLocked = false;
+
+    hideAll();
+    battleScreenEl.classList.remove('hidden');
+
+    document.getElementById('roundNum').textContent = (round + 1);
+    updateBattleUI();
+    buildActions();
+    actionLogEl.textContent = currentEnemy.name + ' appears! Choose your action!';
+  }
+
+  function updateBattleUI() {
+    // Player
+    document.getElementById('playerEmoji').textContent = player.emoji;
+    document.getElementById('playerName').textContent = player.name;
+    const playerHpPct = Math.max(0, (player.currentHp / player.maxHp) * 100);
+    const playerHpBar = document.getElementById('playerHpBar');
+    playerHpBar.style.width = playerHpPct + '%';
+    playerHpBar.classList.toggle('low', playerHpPct < 25);
+    document.getElementById('playerHpText').textContent = Math.max(0, player.currentHp);
+    document.getElementById('playerMaxHpText').textContent = player.maxHp;
+    document.getElementById('playerStats').innerHTML = `
+      <div class="stat"><span class="stat-icon">\u2694\uFE0F</span> ${player.attack}</div>
+      <div class="stat"><span class="stat-icon">\uD83D\uDEE1\uFE0F</span> ${player.defense}</div>
+      <div class="stat"><span class="stat-icon">\uD83D\uDD2E</span> ${player.magic}</div>
+    `;
+
+    // Enemy
+    document.getElementById('enemyEmoji').textContent = currentEnemy.emoji;
+    document.getElementById('enemyName').textContent = currentEnemy.name;
+    const enemyHpPct = Math.max(0, (currentEnemy.currentHp / currentEnemy.maxHp) * 100);
+    const enemyHpBar = document.getElementById('enemyHpBar');
+    enemyHpBar.style.width = enemyHpPct + '%';
+    enemyHpBar.classList.toggle('low', enemyHpPct < 25);
+    document.getElementById('enemyHpText').textContent = Math.max(0, currentEnemy.currentHp);
+    document.getElementById('enemyMaxHpText').textContent = currentEnemy.maxHp;
+    document.getElementById('enemyStats').innerHTML = `
+      <div class="stat"><span class="stat-icon">\u2694\uFE0F</span> ${currentEnemy.attack}</div>
+      <div class="stat"><span class="stat-icon">\uD83D\uDEE1\uFE0F</span> ${currentEnemy.defense}</div>
+    `;
+  }
+
+  function buildActions() {
+    actionsPanelEl.innerHTML = '';
+
+    const actions = [
+      { name: 'Attack', emoji: '\u2694\uFE0F', desc: 'Reliable strike', action: 'attack' },
+      { name: player.special.name, emoji: player.special.emoji, desc: player.special.desc, action: 'special' },
+      { name: 'Block', emoji: '\uD83D\uDEE1\uFE0F', desc: 'Reduce damage taken', action: 'block' },
+    ];
+
+    actions.forEach((act) => {
+      const btn = document.createElement('button');
+      btn.className = 'action-btn';
+      const onCooldown = act.action === 'special' && specialCooldown > 0;
+      btn.disabled = onCooldown || actionLocked;
+      btn.innerHTML = `
+        <span class="action-emoji">${act.emoji}</span>
+        <span class="action-name">${act.name}</span>
+        <span class="action-desc">${act.desc}</span>
+        ${onCooldown ? `<span class="action-cooldown">Cooldown: ${specialCooldown} turns</span>` : ''}
+      `;
+      btn.addEventListener('click', () => playerAction(act.action));
+      actionsPanelEl.appendChild(btn);
+    });
+  }
+
+  function spawnDamageNumber(text, isPlayer, type) {
+    const el = document.createElement('div');
+    el.className = 'damage-number ' + (isPlayer ? 'player-damage' : 'enemy-damage');
+    if (type === 'heal') el.className = 'damage-number heal';
+    if (type === 'blocked') el.className += ' blocked';
+    el.textContent = text;
+    el.style.top = '40%';
+    if (type === 'heal') el.style.left = '25%';
+    arenaEl.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+  }
+
+  function calculateDamage(attacker, defender, isSpecial) {
+    let base = attacker.attack + (isSpecial ? attacker.magic : 0);
+    if (isSpecial && attacker.special) base = attacker.special.damage || base;
+    const variance = 0.8 + Math.random() * 0.4;
+    const reduction = Math.max(0, defender.defense * 0.3);
+    return Math.max(1, Math.round(base * variance - reduction));
+  }
+
+  function playerAction(action) {
+    if (!isPlayerTurn || actionLocked) return;
+    actionLocked = true;
+    turnsPlayed++;
+
+    const playerEl = document.getElementById('playerCombatant');
+    const enemyEl = document.getElementById('enemyCombatant');
+
+    if (action === 'attack') {
+      const dmg = calculateDamage(player, currentEnemy, false);
+      totalDamageDealt += dmg;
+      currentEnemy.currentHp -= dmg;
+
+      playerEl.classList.add('attacking');
+      setTimeout(() => {
+        playerEl.classList.remove('attacking');
+        enemyEl.classList.add('hit');
+        spawnDamageNumber('-' + dmg, false, 'damage');
+        actionLogEl.textContent = player.name + ' attacks for ' + dmg + ' damage!';
+        updateBattleUI();
+        setTimeout(() => enemyEl.classList.remove('hit'), 400);
+      }, 300);
+
+    } else if (action === 'special') {
+      const dmg = calculateDamage(player, currentEnemy, true);
+      totalDamageDealt += dmg;
+      currentEnemy.currentHp -= dmg;
+      specialCooldown = player.special.cooldown;
+
+      playerEl.classList.add('special');
+      setTimeout(() => {
+        playerEl.classList.remove('special');
+        enemyEl.classList.add('hit');
+        spawnDamageNumber('-' + dmg + '!', false, 'damage');
+        actionLogEl.textContent = player.name + ' uses ' + player.special.name + ' for ' + dmg + ' damage!';
+        updateBattleUI();
+        setTimeout(() => enemyEl.classList.remove('hit'), 400);
+      }, 400);
+
+    } else if (action === 'block') {
+      playerEl.classList.add('blocking');
+      actionLogEl.textContent = player.name + ' braces for impact!';
+      setTimeout(() => playerEl.classList.remove('blocking'), 600);
+    }
+
+    // Check enemy death, then enemy turn
+    setTimeout(() => {
+      if (currentEnemy.currentHp <= 0) {
+        currentEnemy.currentHp = 0;
+        updateBattleUI();
+        enemiesDefeated++;
+        actionLogEl.textContent = currentEnemy.name + ' is defeated!';
+
+        setTimeout(() => {
+          round++;
+          if (round >= 3) {
+            showEndScreen(true);
+          } else {
+            showItemShop();
+          }
+        }, 1500);
+        return;
+      }
+
+      // Enemy turn
+      setTimeout(() => enemyTurn(action === 'block'), 800);
+    }, 700);
+  }
+
+  function enemyTurn(playerBlocking) {
+    const enemyEl = document.getElementById('enemyCombatant');
+    const playerEl = document.getElementById('playerCombatant');
+
+    // Enemy AI: 30% chance of special
+    const useSpecial = Math.random() < 0.3 && currentEnemy.special;
+    let dmg;
+
+    if (useSpecial) {
+      dmg = Math.round((currentEnemy.special.damage || currentEnemy.attack + currentEnemy.magic) * (0.8 + Math.random() * 0.4));
+      actionLogEl.textContent = currentEnemy.name + ' uses ' + currentEnemy.special.name + '!';
+    } else {
+      dmg = calculateDamage(currentEnemy, player, false);
+      actionLogEl.textContent = currentEnemy.name + ' attacks!';
+    }
+
+    if (playerBlocking) {
+      dmg = Math.max(1, Math.round(dmg * 0.35));
+    }
+
+    player.currentHp -= dmg;
+
+    enemyEl.classList.add('attacking');
+    setTimeout(() => {
+      enemyEl.classList.remove('attacking');
+      playerEl.classList.add('hit');
+
+      if (playerBlocking) {
+        spawnDamageNumber('-' + dmg + ' (blocked)', true, 'blocked');
+        actionLogEl.textContent += ' ' + player.name + ' blocks! Only ' + dmg + ' damage!';
+      } else {
+        spawnDamageNumber('-' + dmg, true, 'damage');
+        actionLogEl.textContent += ' ' + dmg + ' damage to ' + player.name + '!';
+      }
+
+      // Enemy special heal
+      if (useSpecial && currentEnemy.special.heal) {
+        currentEnemy.currentHp = Math.min(currentEnemy.maxHp, currentEnemy.currentHp + currentEnemy.special.heal);
+        spawnDamageNumber('+' + currentEnemy.special.heal, false, 'heal');
+      }
+
+      updateBattleUI();
+      setTimeout(() => playerEl.classList.remove('hit'), 400);
+
+      // Check player death
+      if (player.currentHp <= 0) {
+        player.currentHp = 0;
+        updateBattleUI();
+        actionLogEl.textContent = player.name + ' has fallen...';
+        setTimeout(() => showEndScreen(false), 1500);
+        return;
+      }
+
+      // Reduce cooldown
+      if (specialCooldown > 0) specialCooldown--;
+
+      isPlayerTurn = true;
+      actionLocked = false;
+      buildActions();
+    }, 300);
+  }
+
+  // Item Shop
+  function showItemShop() {
+    hideAll();
+    itemShopEl.classList.remove('hidden');
+
+    // Pick 2 random items
+    const shopItems = [...items].sort(() => Math.random() - 0.5).slice(0, 2);
+
+    itemShopEl.innerHTML = `
+      <div class="shop-title">Treasure Found!</div>
+      <div class="shop-subtitle">Choose a reward before the next battle</div>
+      <div class="item-grid" id="itemGrid"></div>
+      <button class="skip-btn" id="skipBtn">Skip (continue without item)</button>
+    `;
+
+    const itemGrid = document.getElementById('itemGrid');
+    shopItems.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'item-card';
+      card.innerHTML = `
+        <div class="item-emoji">${item.emoji}</div>
+        <div class="item-name">${item.name}</div>
+        <div class="item-desc">${item.desc}</div>
+      `;
+      card.addEventListener('click', () => {
+        applyItem(item);
+        startNextBattle();
+      });
+      itemGrid.appendChild(card);
+    });
+
+    document.getElementById('skipBtn').addEventListener('click', () => startNextBattle());
+  }
+
+  function applyItem(item) {
+    switch (item.effect) {
+      case 'heal':
+        player.currentHp = Math.min(player.maxHp, player.currentHp + item.value);
+        break;
+      case 'attack':
+        player.attack += item.value;
+        break;
+      case 'defense':
+        player.defense += item.value;
+        break;
+    }
+  }
+
+  // End Screen
+  function showEndScreen(victory) {
+    hideAll();
+    endScreenEl.classList.remove('hidden');
+
+    const titleClass = victory ? 'victory' : 'defeat';
+    const titleText = victory ? 'VICTORY!' : 'DEFEAT';
+    const subtitleText = victory
+      ? 'You defeated all enemies! Champion of the arena!'
+      : 'You fell in battle. Train harder and try again!';
+    const emoji = victory ? '\uD83C\uDFC6' : '\uD83D\uDCA8';
+
+    endScreenEl.innerHTML = `
+      <div style="font-size: 4rem; margin-bottom: 10px;">${emoji}</div>
+      <div class="end-title ${titleClass}">${titleText}</div>
+      <div class="end-subtitle">${subtitleText}</div>
+      <div class="end-stats">
+        <div class="end-stat">
+          <div class="end-stat-num">${enemiesDefeated}/3</div>
+          <div class="end-stat-label">Enemies Defeated</div>
+        </div>
+        <div class="end-stat">
+          <div class="end-stat-num">${totalDamageDealt}</div>
+          <div class="end-stat-label">Total Damage</div>
+        </div>
+        <div class="end-stat">
+          <div class="end-stat-num">${turnsPlayed}</div>
+          <div class="end-stat-label">Turns Played</div>
+        </div>
+      </div>
+      <button class="play-again-btn" id="playAgainBtn">Play Again!</button>
+    `;
+
+    document.getElementById('playAgainBtn').addEventListener('click', showCharSelect);
+  }
+
+  // Initialize
+  showCharSelect();
+})();
+</script>
+</body>
+</html>

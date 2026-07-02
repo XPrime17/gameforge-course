@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dodge Dash! - Session 4</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+  @keyframes slideIn { from { transform: translateY(-40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes fadeUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-60px); } }
+  @keyframes glow {
+    0%, 100% { filter: drop-shadow(0 0 8px #7C3AED) drop-shadow(0 0 20px #7C3AED); }
+    50% { filter: drop-shadow(0 0 16px #EC4899) drop-shadow(0 0 35px #EC4899); }
+  }
+  @keyframes starBurst {
+    0% { transform: scale(0) rotate(0deg); opacity: 1; }
+    100% { transform: scale(2) rotate(180deg); opacity: 0; }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-8px, -4px); }
+    20% { transform: translate(8px, 4px); }
+    30% { transform: translate(-6px, 6px); }
+    40% { transform: translate(6px, -6px); }
+    50% { transform: translate(-4px, 4px); }
+    60% { transform: translate(4px, -4px); }
+    70% { transform: translate(-2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+    90% { transform: translate(-1px, 1px); }
+  }
+
+  body {
+    background: #1A1A2E;
+    color: white;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+  }
+
+  #header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    padding: 12px 20px;
+    z-index: 10;
+  }
+
+  .score-display {
+    font-size: 1.4rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #7C3AED, #EC4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .lives-display {
+    font-size: 1.3rem;
+    display: flex;
+    gap: 4px;
+  }
+
+  .speed-display {
+    font-size: 0.85rem;
+    color: #F59E0B;
+    font-weight: 600;
+  }
+
+  #gameCanvas {
+    border: 2px solid rgba(124, 58, 237, 0.4);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #1A1A2E 0%, #16213E 50%, #1A1A2E 100%);
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.15), inset 0 0 60px rgba(0, 0, 0, 0.3);
+  }
+
+  #gameCanvas.shaking {
+    animation: shake 0.4s ease-out;
+  }
+
+  /* Start Screen */
+  #startScreen, #gameOverScreen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(26, 26, 46, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    animation: slideIn 0.5s ease-out;
+  }
+
+  .game-title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #7C3AED, #EC4899, #F59E0B);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .game-subtitle {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 30px;
+    text-align: center;
+  }
+
+  .start-btn {
+    font-size: 1.4rem;
+    font-weight: 700;
+    padding: 16px 48px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #7C3AED, #EC4899);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+    margin-bottom: 20px;
+  }
+
+  .start-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 30px rgba(124, 58, 237, 0.6);
+  }
+
+  .instructions {
+    max-width: 380px;
+    text-align: center;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.9rem;
+  }
+
+  .instructions kbd {
+    background: rgba(124, 58, 237, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(124, 58, 237, 0.5);
+    font-family: inherit;
+    color: #EC4899;
+  }
+
+  .final-score {
+    font-size: 5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #F59E0B, #EC4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin: 10px 0;
+  }
+
+  .final-label {
+    font-size: 1.2rem;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 5px;
+  }
+
+  .high-score {
+    font-size: 1rem;
+    color: #F59E0B;
+    margin-bottom: 25px;
+  }
+
+  .hidden { display: none !important; }
+
+  #touchControls {
+    display: none;
+    width: 100%;
+    max-width: 600px;
+    justify-content: space-between;
+    padding: 10px 20px;
+    gap: 10px;
+  }
+
+  .touch-btn {
+    flex: 1;
+    padding: 18px;
+    font-size: 2rem;
+    border: 2px solid rgba(124, 58, 237, 0.4);
+    border-radius: 12px;
+    background: rgba(124, 58, 237, 0.15);
+    color: white;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .touch-btn:active {
+    background: rgba(124, 58, 237, 0.4);
+  }
+
+  @media (pointer: coarse) {
+    #touchControls { display: flex; }
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="score-display">Score: <span id="score">0</span></div>
+  <div class="speed-display">Speed: <span id="speed">1</span>x</div>
+  <div class="lives-display" id="lives"></div>
+</div>
+
+<canvas id="gameCanvas" width="600" height="700"></canvas>
+
+<div id="touchControls">
+  <button class="touch-btn" id="btnLeft">&#x2B05;</button>
+  <button class="touch-btn" id="btnRight">&#x27A1;</button>
+</div>
+
+<!-- Start Screen -->
+<div id="startScreen">
+  <div class="game-title">Dodge Dash!</div>
+  <div class="game-subtitle">Session 4 - How fast can you survive?</div>
+  <button class="start-btn" id="startBtn">Start Running!</button>
+  <div class="instructions">
+    Use <kbd>&#x2190;</kbd> <kbd>&#x2192;</kbd> arrow keys to dodge obstacles<br>
+    Grab <span style="color:#7C3AED">&#x2602;</span> umbrella for invincibility!<br>
+    Speed increases every 10 seconds<br>
+    Survive as long as you can!
+  </div>
+</div>
+
+<!-- Game Over Screen -->
+<div id="gameOverScreen" class="hidden">
+  <div class="game-title">Game Over!</div>
+  <div class="final-label">You survived</div>
+  <div class="final-score" id="finalScore">0</div>
+  <div class="final-label">seconds</div>
+  <div class="high-score" id="highScore"></div>
+  <button class="start-btn" id="restartBtn">Try Again!</button>
+</div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const speedEl = document.getElementById('speed');
+  const livesEl = document.getElementById('lives');
+  const startScreen = document.getElementById('startScreen');
+  const gameOverScreen = document.getElementById('gameOverScreen');
+  const finalScoreEl = document.getElementById('finalScore');
+  const highScoreEl = document.getElementById('highScore');
+
+  // Responsive canvas
+  function resizeCanvas() {
+    const maxW = Math.min(600, window.innerWidth - 20);
+    const ratio = maxW / 600;
+    canvas.style.width = maxW + 'px';
+    canvas.style.height = (700 * ratio) + 'px';
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // Game state
+  let gameRunning = false;
+  let score = 0;
+  let lives = 3;
+  let speedMultiplier = 1;
+  let invincible = false;
+  let invincibleTimer = 0;
+  let startTime = 0;
+  let lastSpeedIncrease = 0;
+  let highScoreVal = parseInt(localStorage.getItem('dodgeDashHighScore') || '0');
+  let animFrame = null;
+
+  // Player
+  const player = {
+    x: 300, y: 630, width: 40, height: 50, speed: 6,
+    targetX: 300, emoji: '\uD83C\uDFC3'
+  };
+
+  // Input
+  const keys = {};
+  let touchLeft = false, touchRight = false;
+
+  // Entities
+  let obstacles = [];
+  let powerUps = [];
+  let particles = [];
+  let damageNumbers = [];
+
+  const obstacleTypes = [
+    { emoji: '\uD83E\uDEA8', size: 36 },
+    { emoji: '\uD83C\uDF35', size: 38 },
+    { emoji: '\uD83D\uDD25', size: 34 },
+  ];
+
+  function spawnObstacle() {
+    const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+    obstacles.push({
+      x: Math.random() * (canvas.width - 50) + 25,
+      y: -40,
+      speed: (2 + Math.random() * 2) * speedMultiplier,
+      ...type,
+      rotation: 0,
+      rotSpeed: (Math.random() - 0.5) * 0.1,
+    });
+  }
+
+  function spawnPowerUp() {
+    powerUps.push({
+      x: Math.random() * (canvas.width - 50) + 25,
+      y: -40,
+      speed: 1.5 * speedMultiplier,
+      emoji: '\u2602\uFE0F',
+      size: 36,
+      glow: 0,
+    });
+  }
+
+  function spawnParticle(x, y, color) {
+    for (let i = 0; i < 3; i++) {
+      particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 3,
+        vy: -Math.random() * 2 - 1,
+        life: 1,
+        color,
+        size: Math.random() * 4 + 2,
+      });
+    }
+  }
+
+  function spawnDamageNumber(x, y, text, color) {
+    damageNumbers.push({ x, y, text, color, life: 1 });
+  }
+
+  function drawEmoji(emoji, x, y, size, rotation) {
+    ctx.save();
+    ctx.translate(x, y);
+    if (rotation) ctx.rotate(rotation);
+    ctx.font = size + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, 0, 0);
+    ctx.restore();
+  }
+
+  function updateLivesDisplay() {
+    livesEl.textContent = '';
+    for (let i = 0; i < 3; i++) {
+      livesEl.textContent += i < lives ? '\u2764\uFE0F' : '\uD83D\uDDA4';
+    }
+  }
+
+  function drawBackground() {
+    // Starfield
+    ctx.fillStyle = '#1A1A2E';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const time = Date.now() * 0.001;
+    for (let i = 0; i < 50; i++) {
+      const sx = (i * 137.5 + time * 20 * ((i % 3) + 1)) % canvas.width;
+      const sy = (i * 97.3 + time * 30 * ((i % 2) + 1)) % canvas.height;
+      const brightness = 0.2 + 0.3 * Math.sin(time * 2 + i);
+      ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1 + (i % 2), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Ground line
+    const gradient = ctx.createLinearGradient(0, 680, 600, 680);
+    gradient.addColorStop(0, 'rgba(124, 58, 237, 0)');
+    gradient.addColorStop(0.5, 'rgba(124, 58, 237, 0.5)');
+    gradient.addColorStop(1, 'rgba(124, 58, 237, 0)');
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 680);
+    ctx.lineTo(600, 680);
+    ctx.stroke();
+  }
+
+  function drawPlayer() {
+    // Trail particles
+    spawnParticle(player.x, player.y + 20, invincible ? '#EC4899' : '#7C3AED');
+
+    // Invincibility glow
+    if (invincible) {
+      const glowSize = 30 + Math.sin(Date.now() * 0.01) * 8;
+      const grd = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, glowSize);
+      grd.addColorStop(0, 'rgba(124, 58, 237, 0.4)');
+      grd.addColorStop(0.5, 'rgba(236, 72, 153, 0.2)');
+      grd.addColorStop(1, 'rgba(124, 58, 237, 0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, glowSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    drawEmoji(player.emoji, player.x, player.y, 42, 0);
+
+    if (invincible) {
+      drawEmoji('\u2602\uFE0F', player.x, player.y - 30, 28, 0);
+    }
+  }
+
+  function checkCollision(a, b, radius) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy) < radius;
+  }
+
+  function hitPlayer() {
+    if (invincible) return;
+    lives--;
+    updateLivesDisplay();
+    canvas.classList.add('shaking');
+    setTimeout(() => canvas.classList.remove('shaking'), 400);
+    spawnDamageNumber(player.x, player.y - 40, '-1 \u2764\uFE0F', '#EC4899');
+
+    // Hit flash
+    for (let i = 0; i < 12; i++) {
+      particles.push({
+        x: player.x,
+        y: player.y,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.5) * 8,
+        life: 1,
+        color: '#EC4899',
+        size: Math.random() * 6 + 3,
+      });
+    }
+
+    if (lives <= 0) {
+      gameOver();
+    }
+  }
+
+  function gameOver() {
+    gameRunning = false;
+    cancelAnimationFrame(animFrame);
+
+    const finalScore = Math.floor(score);
+    finalScoreEl.textContent = finalScore;
+
+    if (finalScore > highScoreVal) {
+      highScoreVal = finalScore;
+      localStorage.setItem('dodgeDashHighScore', String(highScoreVal));
+      highScoreEl.textContent = '\uD83C\uDFC6 New High Score!';
+    } else {
+      highScoreEl.textContent = 'Best: ' + highScoreVal + 's';
+    }
+
+    gameOverScreen.classList.remove('hidden');
+  }
+
+  function resetGame() {
+    obstacles = [];
+    powerUps = [];
+    particles = [];
+    damageNumbers = [];
+    lives = 3;
+    score = 0;
+    speedMultiplier = 1;
+    invincible = false;
+    invincibleTimer = 0;
+    player.x = 300;
+    player.targetX = 300;
+    startTime = Date.now();
+    lastSpeedIncrease = 0;
+    updateLivesDisplay();
+    scoreEl.textContent = '0';
+    speedEl.textContent = '1';
+  }
+
+  function update() {
+    if (!gameRunning) return;
+
+    const now = Date.now();
+    const elapsed = (now - startTime) / 1000;
+    score = elapsed;
+    scoreEl.textContent = Math.floor(score);
+
+    // Speed increase every 10 seconds
+    const speedLevel = Math.floor(elapsed / 10);
+    if (speedLevel > lastSpeedIncrease) {
+      lastSpeedIncrease = speedLevel;
+      speedMultiplier = 1 + speedLevel * 0.3;
+      speedEl.textContent = speedMultiplier.toFixed(1);
+      spawnDamageNumber(300, 100, 'SPEED UP!', '#F59E0B');
+    }
+
+    // Invincibility timer
+    if (invincible) {
+      invincibleTimer -= 16;
+      if (invincibleTimer <= 0) {
+        invincible = false;
+      }
+    }
+
+    // Player movement
+    let moveDir = 0;
+    if (keys['ArrowLeft'] || keys['a'] || touchLeft) moveDir -= 1;
+    if (keys['ArrowRight'] || keys['d'] || touchRight) moveDir += 1;
+
+    player.x += moveDir * player.speed;
+    player.x = Math.max(25, Math.min(canvas.width - 25, player.x));
+
+    // Spawn obstacles
+    const spawnRate = Math.max(15, 40 - speedLevel * 3);
+    if (Math.random() < 1 / spawnRate) spawnObstacle();
+
+    // Spawn power-ups (rare)
+    if (Math.random() < 0.002) spawnPowerUp();
+
+    // Update obstacles
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const obs = obstacles[i];
+      obs.y += obs.speed;
+      obs.rotation += obs.rotSpeed;
+
+      if (obs.y > canvas.height + 50) {
+        obstacles.splice(i, 1);
+        continue;
+      }
+
+      if (checkCollision(player, obs, 30)) {
+        hitPlayer();
+        obstacles.splice(i, 1);
+      }
+    }
+
+    // Update power-ups
+    for (let i = powerUps.length - 1; i >= 0; i--) {
+      const pu = powerUps[i];
+      pu.y += pu.speed;
+      pu.glow += 0.05;
+
+      if (pu.y > canvas.height + 50) {
+        powerUps.splice(i, 1);
+        continue;
+      }
+
+      if (checkCollision(player, pu, 35)) {
+        invincible = true;
+        invincibleTimer = 3000;
+        spawnDamageNumber(player.x, player.y - 50, 'INVINCIBLE!', '#7C3AED');
+        for (let j = 0; j < 20; j++) {
+          particles.push({
+            x: pu.x, y: pu.y,
+            vx: (Math.random() - 0.5) * 10,
+            vy: (Math.random() - 0.5) * 10,
+            life: 1, color: '#7C3AED',
+            size: Math.random() * 5 + 2,
+          });
+        }
+        powerUps.splice(i, 1);
+      }
+    }
+
+    // Update particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.03;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    // Update damage numbers
+    for (let i = damageNumbers.length - 1; i >= 0; i--) {
+      const d = damageNumbers[i];
+      d.y -= 1.5;
+      d.life -= 0.02;
+      if (d.life <= 0) damageNumbers.splice(i, 1);
+    }
+  }
+
+  function draw() {
+    drawBackground();
+
+    // Draw particles (behind everything)
+    for (const p of particles) {
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Draw obstacles
+    for (const obs of obstacles) {
+      // Shadow
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.ellipse(obs.x + 3, obs.y + 5, obs.size * 0.4, obs.size * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      drawEmoji(obs.emoji, obs.x, obs.y, obs.size, obs.rotation);
+    }
+
+    // Draw power-ups
+    for (const pu of powerUps) {
+      const glowSize = 25 + Math.sin(pu.glow * 6) * 8;
+      const grd = ctx.createRadialGradient(pu.x, pu.y, 0, pu.x, pu.y, glowSize);
+      grd.addColorStop(0, 'rgba(124, 58, 237, 0.3)');
+      grd.addColorStop(1, 'rgba(124, 58, 237, 0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, glowSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      drawEmoji(pu.emoji, pu.x, pu.y, pu.size, 0);
+    }
+
+    // Draw player
+    drawPlayer();
+
+    // Draw damage numbers
+    for (const d of damageNumbers) {
+      ctx.globalAlpha = d.life;
+      ctx.font = 'bold 20px "Segoe UI", system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = d.color;
+      ctx.shadowColor = d.color;
+      ctx.shadowBlur = 10;
+      ctx.fillText(d.text, d.x, d.y);
+      ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function gameLoop() {
+    update();
+    draw();
+    animFrame = requestAnimationFrame(gameLoop);
+  }
+
+  function startGame() {
+    startScreen.classList.add('hidden');
+    gameOverScreen.classList.add('hidden');
+    resetGame();
+    gameRunning = true;
+    gameLoop();
+  }
+
+  // Event listeners
+  document.addEventListener('keydown', (e) => {
+    keys[e.key] = true;
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) {
+      e.preventDefault();
+    }
+  });
+  document.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+  // Touch controls
+  const btnLeft = document.getElementById('btnLeft');
+  const btnRight = document.getElementById('btnRight');
+
+  btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); touchLeft = true; });
+  btnLeft.addEventListener('touchend', () => { touchLeft = false; });
+  btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); touchRight = true; });
+  btnRight.addEventListener('touchend', () => { touchRight = false; });
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('restartBtn').addEventListener('click', startGame);
+
+  // Initial setup
+  updateLivesDisplay();
+
+  // Draw initial background
+  drawBackground();
+})();
+</script>
+</body>
+</html>

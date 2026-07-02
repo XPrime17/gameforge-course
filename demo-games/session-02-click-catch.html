@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sushi Smash - Click & Catch Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes popIn {
+    0% { transform: scale(0) rotate(-15deg); opacity: 0; }
+    60% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  @keyframes popOut {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0) rotate(20deg); opacity: 0; }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  @keyframes scoreFloat {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-60px) scale(1.5); }
+  }
+
+  @keyframes comboGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(245,158,11,0.3); }
+    50% { box-shadow: 0 0 30px rgba(245,158,11,0.8); }
+  }
+
+  @keyframes bombFlash {
+    0% { background: rgba(236,72,153,0.1); }
+    50% { background: rgba(236,72,153,0.3); }
+    100% { background: rgba(236,72,153,0.1); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  @keyframes particle {
+    0% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(0); }
+  }
+
+  body {
+    background: #1A1A2E;
+    color: #E0E0E0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  .container {
+    max-width: 600px;
+    width: 95%;
+    padding: 15px;
+  }
+
+  header {
+    text-align: center;
+    padding: 20px 0 10px;
+  }
+
+  h1 {
+    font-size: 2.2em;
+    background: linear-gradient(90deg, #EC4899, #F59E0B, #10B981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 3px;
+  }
+
+  .subtitle {
+    color: #7C3AED;
+    font-size: 0.85em;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .hud {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin: 15px 0;
+  }
+
+  .hud-item {
+    background: linear-gradient(145deg, rgba(30,30,60,0.9), rgba(20,20,40,0.95));
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .hud-label {
+    font-size: 0.7em;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+  }
+
+  .hud-value {
+    font-size: 1.6em;
+    font-weight: bold;
+  }
+
+  .hud-score .hud-value { color: #F59E0B; }
+  .hud-combo .hud-value { color: #10B981; }
+  .hud-lives .hud-value { color: #EC4899; }
+
+  .combo-active {
+    animation: comboGlow 0.5s ease-in-out infinite;
+  }
+
+  .speed-bar {
+    background: rgba(30,30,60,0.6);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 8px;
+    padding: 8px 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85em;
+  }
+
+  .speed-label { color: #888; }
+  .speed-fill-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(124,58,237,0.2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .speed-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10B981, #F59E0B, #EC4899);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+  .speed-text { color: #F59E0B; font-weight: bold; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .cell {
+    aspect-ratio: 1;
+    background: linear-gradient(145deg, rgba(30,30,60,0.7), rgba(20,20,40,0.8));
+    border: 2px solid rgba(124,58,237,0.15);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.8em;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cell:hover {
+    border-color: rgba(124,58,237,0.4);
+    background: linear-gradient(145deg, rgba(40,40,70,0.7), rgba(30,30,50,0.8));
+  }
+
+  .cell.active {
+    animation: popIn 0.3s ease-out;
+    border-color: rgba(16,185,129,0.5);
+    background: linear-gradient(145deg, rgba(16,185,129,0.1), rgba(30,30,60,0.8));
+  }
+
+  .cell.bomb-active {
+    animation: popIn 0.3s ease-out;
+    border-color: rgba(236,72,153,0.5);
+    background: linear-gradient(145deg, rgba(236,72,153,0.1), rgba(30,30,60,0.8));
+  }
+
+  .cell.caught {
+    animation: popOut 0.3s ease-out forwards;
+    border-color: rgba(245,158,11,0.6);
+  }
+
+  .cell.bomb-hit {
+    animation: shake 0.3s ease-out;
+    border-color: rgba(236,72,153,0.8);
+    background: rgba(236,72,153,0.2);
+  }
+
+  .cell .particle-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    pointer-events: none;
+  }
+
+  .particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: particle 0.6s ease-out forwards;
+  }
+
+  .score-popup {
+    position: absolute;
+    font-size: 0.5em;
+    font-weight: bold;
+    pointer-events: none;
+    animation: scoreFloat 0.8s ease-out forwards;
+    z-index: 10;
+  }
+
+  .overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(26,26,46,0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .overlay-content {
+    text-align: center;
+    max-width: 450px;
+    padding: 40px;
+    background: linear-gradient(145deg, rgba(40,40,70,0.95), rgba(25,25,50,0.98));
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .overlay-emoji {
+    font-size: 4em;
+    margin-bottom: 15px;
+  }
+
+  .overlay-title {
+    font-size: 2em;
+    margin-bottom: 10px;
+    background: linear-gradient(90deg, #7C3AED, #10B981, #EC4899, #7C3AED);
+    background-size: 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
+  }
+
+  .overlay-score {
+    font-size: 1.5em;
+    color: #F59E0B;
+    margin: 10px 0;
+  }
+
+  .overlay-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 20px 0;
+    text-align: center;
+  }
+
+  .stat-box {
+    background: rgba(124,58,237,0.1);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 10px;
+    padding: 10px;
+  }
+
+  .stat-label { font-size: 0.75em; color: #888; }
+  .stat-value { font-size: 1.3em; font-weight: bold; color: #10B981; }
+
+  .start-btn, .restart-btn {
+    background: linear-gradient(135deg, #7C3AED, #6D28D9);
+    border: none;
+    color: white;
+    padding: 14px 40px;
+    border-radius: 30px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+    margin-top: 10px;
+  }
+
+  .start-btn:hover, .restart-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(124,58,237,0.6);
+  }
+
+  .instructions {
+    color: #999;
+    font-size: 0.85em;
+    line-height: 1.6;
+    margin: 15px 0;
+  }
+
+  .instructions span { font-size: 1.1em; }
+
+  footer {
+    text-align: center;
+    padding: 15px;
+    color: #555;
+    font-size: 0.8em;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Sushi Smash!</h1>
+    <div class="subtitle">Click & Catch Game</div>
+  </header>
+
+  <div class="hud">
+    <div class="hud-item hud-score">
+      <div class="hud-label">Score</div>
+      <div class="hud-value" id="score">0</div>
+    </div>
+    <div class="hud-item hud-combo" id="combo-box">
+      <div class="hud-label">Combo</div>
+      <div class="hud-value" id="combo">x0</div>
+    </div>
+    <div class="hud-item hud-lives">
+      <div class="hud-label">Lives</div>
+      <div class="hud-value" id="lives">❤️❤️❤️</div>
+    </div>
+  </div>
+
+  <div class="speed-bar">
+    <span class="speed-label">Speed:</span>
+    <div class="speed-fill-track">
+      <div class="speed-fill" id="speed-fill" style="width: 10%"></div>
+    </div>
+    <span class="speed-text" id="speed-text">Lv.1</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>Session 02 Demo - Vibe Coding Games Course</footer>
+</div>
+
+<!-- Start Overlay -->
+<div class="overlay" id="start-overlay">
+  <div class="overlay-content">
+    <div class="overlay-emoji">🍣</div>
+    <div class="overlay-title">Sushi Smash!</div>
+    <div class="instructions">
+      <span>🍣</span> Sushi = <strong style="color:#10B981">+10 pts</strong><br>
+      <span>🍙</span> Onigiri = <strong style="color:#F59E0B">+5 pts</strong><br>
+      <span>🍡</span> Dango = <strong style="color:#7C3AED">+15 pts</strong> (rare!)<br>
+      <span>💣</span> Bomb = <strong style="color:#EC4899">Lose a life!</strong><br><br>
+      Build combos by catching items in a row!<br>
+      Speed increases every 10 points!
+    </div>
+    <button class="start-btn" onclick="startGame()">Let's Go! 🎮</button>
+  </div>
+</div>
+
+<!-- Game Over Overlay -->
+<div class="overlay" id="gameover-overlay" style="display:none">
+  <div class="overlay-content">
+    <div class="overlay-emoji" id="go-emoji">💥</div>
+    <div class="overlay-title">Game Over!</div>
+    <div class="overlay-score" id="go-score">Score: 0</div>
+    <div class="overlay-stats">
+      <div class="stat-box">
+        <div class="stat-label">Best Combo</div>
+        <div class="stat-value" id="go-combo">x0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Items Caught</div>
+        <div class="stat-value" id="go-caught">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Speed Level</div>
+        <div class="stat-value" id="go-speed">1</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Accuracy</div>
+        <div class="stat-value" id="go-accuracy">0%</div>
+      </div>
+    </div>
+    <div id="go-rank" style="font-size:1.2em;margin:10px 0;"></div>
+    <button class="restart-btn" onclick="startGame()">Play Again 🔄</button>
+  </div>
+</div>
+
+<script>
+const ITEMS = [
+  { emoji: '🍣', points: 10, weight: 40, color: '#EC4899' },
+  { emoji: '🍙', points: 5,  weight: 35, color: '#10B981' },
+  { emoji: '🍡', points: 15, weight: 10, color: '#7C3AED' },
+  { emoji: '💣', points: 0,  weight: 15, color: '#EC4899', isBomb: true },
+];
+
+let score = 0;
+let combo = 0;
+let bestCombo = 0;
+let lives = 3;
+let speedLevel = 1;
+let totalCaught = 0;
+let totalClicks = 0;
+let totalSpawns = 0;
+let gameRunning = false;
+let spawnTimer = null;
+let activeTimers = [];
+
+// Build the grid
+const grid = document.getElementById('grid');
+const cells = [];
+for (let i = 0; i < 16; i++) {
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  cell.dataset.index = i;
+  cell.addEventListener('click', () => cellClicked(i));
+  grid.appendChild(cell);
+  cells.push({ el: cell, item: null, timer: null });
+}
+
+function pickItem() {
+  const totalWeight = ITEMS.reduce((s, i) => s + i.weight, 0);
+  let r = Math.random() * totalWeight;
+  for (const item of ITEMS) {
+    r -= item.weight;
+    if (r <= 0) return item;
+  }
+  return ITEMS[0];
+}
+
+function getSpawnInterval() {
+  // Starts at 1200ms, decreases with speed level
+  return Math.max(400, 1200 - (speedLevel - 1) * 80);
+}
+
+function getItemDuration() {
+  // How long item stays visible
+  return Math.max(600, 1500 - (speedLevel - 1) * 90);
+}
+
+function spawnItem() {
+  if (!gameRunning) return;
+
+  // Find empty cells
+  const emptyCells = [];
+  cells.forEach((c, i) => { if (!c.item) emptyCells.push(i); });
+
+  if (emptyCells.length === 0) {
+    scheduleSpawn();
+    return;
+  }
+
+  const cellIdx = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+  const item = pickItem();
+  const cell = cells[cellIdx];
+
+  cell.item = item;
+  cell.el.textContent = item.emoji;
+  cell.el.className = item.isBomb ? 'cell bomb-active' : 'cell active';
+  totalSpawns++;
+
+  // Auto-remove after duration
+  const duration = getItemDuration();
+  cell.timer = setTimeout(() => {
+    if (cell.item === item) {
+      // Missed a non-bomb item
+      if (!item.isBomb) {
+        combo = 0;
+        updateHUD();
+      }
+      clearCell(cellIdx);
+    }
+  }, duration);
+  activeTimers.push(cell.timer);
+
+  scheduleSpawn();
+}
+
+function scheduleSpawn() {
+  if (!gameRunning) return;
+  const interval = getSpawnInterval();
+  // Random offset to feel natural
+  const jitter = Math.random() * (interval * 0.4);
+  spawnTimer = setTimeout(spawnItem, interval + jitter);
+  activeTimers.push(spawnTimer);
+}
+
+function clearCell(idx) {
+  const cell = cells[idx];
+  cell.item = null;
+  cell.el.textContent = '';
+  cell.el.className = 'cell';
+  if (cell.timer) {
+    clearTimeout(cell.timer);
+    cell.timer = null;
+  }
+}
+
+function createParticles(cellEl, color) {
+  const container = document.createElement('div');
+  container.className = 'particle-container';
+  cellEl.appendChild(container);
+
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = (Math.PI * 2 * i) / 8;
+    const dist = 30 + Math.random() * 40;
+    p.style.setProperty('--px', `${Math.cos(angle) * dist}px`);
+    p.style.setProperty('--py', `${Math.sin(angle) * dist}px`);
+    p.style.background = color;
+    p.style.width = (4 + Math.random() * 6) + 'px';
+    p.style.height = p.style.width;
+    container.appendChild(p);
+  }
+
+  setTimeout(() => container.remove(), 700);
+}
+
+function showScorePopup(cellEl, text, color) {
+  const popup = document.createElement('div');
+  popup.className = 'score-popup';
+  popup.textContent = text;
+  popup.style.color = color;
+  popup.style.left = '50%';
+  popup.style.top = '30%';
+  popup.style.transform = 'translateX(-50%)';
+  cellEl.appendChild(popup);
+  setTimeout(() => popup.remove(), 800);
+}
+
+function cellClicked(idx) {
+  if (!gameRunning) return;
+  const cell = cells[idx];
+  if (!cell.item) return;
+
+  totalClicks++;
+  const item = cell.item;
+
+  if (item.isBomb) {
+    // Hit a bomb!
+    lives--;
+    combo = 0;
+    cell.el.className = 'cell bomb-hit';
+    createParticles(cell.el, '#EC4899');
+    showScorePopup(cell.el, '💥 -1 Life!', '#EC4899');
+
+    setTimeout(() => clearCell(idx), 300);
+
+    if (lives <= 0) {
+      gameOver();
+      return;
+    }
+  } else {
+    // Caught food!
+    combo++;
+    if (combo > bestCombo) bestCombo = combo;
+    const comboBonus = Math.floor(combo / 3) * 5;
+    const points = item.points + comboBonus;
+    score += points;
+    totalCaught++;
+
+    cell.el.className = 'cell caught';
+    createParticles(cell.el, item.color);
+
+    const msg = comboBonus > 0 ? `+${points} (combo!)` : `+${points}`;
+    showScorePopup(cell.el, msg, item.color);
+
+    setTimeout(() => clearCell(idx), 300);
+
+    // Speed up every 10 points
+    const newLevel = Math.floor(score / 10) + 1;
+    if (newLevel > speedLevel) {
+      speedLevel = newLevel;
+    }
+  }
+
+  updateHUD();
+}
+
+function updateHUD() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('combo').textContent = `x${combo}`;
+  document.getElementById('lives').textContent = '❤️'.repeat(lives) + '🖤'.repeat(3 - lives);
+
+  const comboBox = document.getElementById('combo-box');
+  if (combo >= 3) {
+    comboBox.classList.add('combo-active');
+  } else {
+    comboBox.classList.remove('combo-active');
+  }
+
+  // Speed bar (cap display at level 10)
+  const displayLevel = Math.min(speedLevel, 10);
+  document.getElementById('speed-fill').style.width = (displayLevel * 10) + '%';
+  document.getElementById('speed-text').textContent = `Lv.${speedLevel}`;
+}
+
+function gameOver() {
+  gameRunning = false;
+
+  // Clear all timers
+  activeTimers.forEach(t => clearTimeout(t));
+  activeTimers = [];
+  if (spawnTimer) clearTimeout(spawnTimer);
+
+  // Clear all cells
+  cells.forEach((_, i) => clearCell(i));
+
+  // Show game over
+  const accuracy = totalClicks > 0 ? Math.round((totalCaught / totalClicks) * 100) : 0;
+
+  document.getElementById('go-score').textContent = `Score: ${score}`;
+  document.getElementById('go-combo').textContent = `x${bestCombo}`;
+  document.getElementById('go-caught').textContent = totalCaught;
+  document.getElementById('go-speed').textContent = speedLevel;
+  document.getElementById('go-accuracy').textContent = accuracy + '%';
+
+  let rank, emoji;
+  if (score >= 200) { rank = 'Sushi Sensei!'; emoji = '👑'; }
+  else if (score >= 100) { rank = 'Master Chef!'; emoji = '🏆'; }
+  else if (score >= 50) { rank = 'Skilled Catcher!'; emoji = '⭐'; }
+  else if (score >= 20) { rank = 'Apprentice'; emoji = '🥋'; }
+  else { rank = 'Keep Practicing!'; emoji = '💪'; }
+
+  document.getElementById('go-emoji').textContent = emoji;
+  document.getElementById('go-rank').innerHTML = `<span style="color:#F59E0B">${rank}</span>`;
+
+  document.getElementById('gameover-overlay').style.display = 'flex';
+}
+
+function startGame() {
+  // Reset
+  score = 0;
+  combo = 0;
+  bestCombo = 0;
+  lives = 3;
+  speedLevel = 1;
+  totalCaught = 0;
+  totalClicks = 0;
+  totalSpawns = 0;
+  gameRunning = true;
+
+  // Clear all timers
+  activeTimers.forEach(t => clearTimeout(t));
+  activeTimers = [];
+
+  // Clear cells
+  cells.forEach((_, i) => clearCell(i));
+
+  // Hide overlays
+  document.getElementById('start-overlay').style.display = 'none';
+  document.getElementById('gameover-overlay').style.display = 'none';
+
+  updateHUD();
+
+  // Start spawning after a short delay
+  setTimeout(() => {
+    spawnItem();
+  }, 500);
+}
+</script>
+</body>
+</html>
