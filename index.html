@@ -316,6 +316,29 @@
   .phase-chatgpt { background: #1B3D2F; color: #00FF88; }
   .phase-transition { background: #3D2F1B; color: #FFB800; }
   .phase-ide { background: #1B2F3D; color: #00D4FF; }
+
+  .hero-cta {
+    display: inline-block;
+    margin-top: 1.5rem;
+    background: linear-gradient(135deg, var(--cn-orange), #FF8800);
+    color: white;
+    text-decoration: none;
+    font-weight: 900;
+    font-size: 1.1rem;
+    padding: 1rem 2.2rem;
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(255, 107, 0, 0.45);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .hero-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 32px rgba(255, 107, 0, 0.6);
+  }
+  .hero-cta-note {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.75);
+  }
 </style>
 </head>
 <body>
@@ -324,6 +347,8 @@
   <div class="header-brand">Code Ninjas &bull; East Gwillimbury</div>
   <h1>🎮 Game Forge</h1>
   <p>Vibe Code Your Own Video Games — 12 sessions of building real, playable games with AI. No coding experience required.</p>
+  <a href="https://gameforgeai.dev" target="_blank" class="hero-cta">🚀 Start Creating — gameforgeai.dev</a>
+  <div class="hero-cta-note">Describe a game (or just say it out loud) and play it seconds later. Class code required — get yours in class!</div>
 </div>
 
 <nav class="nav-tabs">
@@ -559,6 +584,13 @@
     <h2>⚔️ Quiz Battle</h2>
     <p>Our own Kahoot-style multiplayer quiz platform. Ninjas create quizzes, the whole class plays together in real-time.</p>
     <a href="https://quiz.gameforgeai.dev/" target="_blank">Launch Quiz Battle →</a>
+  </div>
+
+  <!-- Build-your-own CTA -->
+  <div class="quiz-cta" style="background: linear-gradient(135deg, var(--cn-orange), #E55A00); border-color: rgba(255, 170, 0, 0.35);">
+    <h2>🎮 Played the demos?</h2>
+    <p>Now build your own. Describe any game you can imagine — or just say it out loud — and Game Forge AI turns it into a real, playable game in seconds.</p>
+    <a href="https://gameforgeai.dev" target="_blank">Start Creating →</a>
   </div>
 
   </div>
